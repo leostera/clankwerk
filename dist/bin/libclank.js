@@ -1,18 +1,13 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
-import { basename, dirname, join, resolve } from "node:path"
+#!/usr/bin/env bun
+// @bun
 
-export interface NewProjectOptions {
-  readonly directory: string
-  readonly name?: string
-  readonly version: string
-}
+// bin/libclank.ts
+import { basename as basename2, resolve as resolve2 } from "path";
 
-export interface NewProjectResult {
-  readonly created: readonly string[]
-  readonly skipped: readonly string[]
-}
-
-const files: Readonly<Record<string, string>> = {
+// cli/new.ts
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { basename, dirname, join, resolve } from "path";
+var files = {
   "README.md": `# __PROJECT_NAME__
 
 A Bun + Cloudflare Worker application organized around LibClank agents, tasks, workflows, and triggers.
@@ -28,21 +23,21 @@ The example webhook is available at \`POST /api/hello\`. The starter uses LibCla
 
 ## Project layout
 
-- \`agents/\` — application-owned AgentEndpoint adapters and agent-task helpers.
-- \`tasks/\` — reusable units of work.
-- \`triggers/\` — webhook, manual, and scheduled workflow inputs.
-- \`workflows/\` — workflow compositions and workflow registry.
-- \`worker/\` — Worker entrypoint, Wrangler config, tests, TypeScript/Vitest config, and generated binding types.
+- \`agents/\` \u2014 application-owned AgentEndpoint adapters and agent-task helpers.
+- \`tasks/\` \u2014 reusable units of work.
+- \`triggers/\` \u2014 webhook, manual, and scheduled workflow inputs.
+- \`workflows/\` \u2014 workflow compositions and workflow registry.
+- \`worker/\` \u2014 Worker entrypoint, Wrangler config, tests, TypeScript/Vitest config, and generated binding types.
 
 Add new files in those root-level directories, then register each workflow in \`workflows/index.ts\`.
 
 ## Commands
 
-- \`bun run dev\` — run the Worker locally.
-- \`bun run typecheck\` — check TypeScript.
-- \`bun run test\` — run tests.
-- \`bun run deploy\` — deploy with Wrangler.
-- \`bun run libclank new <directory>\` — scaffold another project.
+- \`bun run dev\` \u2014 run the Worker locally.
+- \`bun run typecheck\` \u2014 check TypeScript.
+- \`bun run test\` \u2014 run tests.
+- \`bun run deploy\` \u2014 deploy with Wrangler.
+- \`bun run libclank new <directory>\` \u2014 scaffold another project.
 
 Keep credentials in Worker secrets or bindings, not in source control. External side effects may be retried; make them idempotent where needed.
 `,
@@ -176,62 +171,54 @@ export default defineConfig({
     "traces": { "enabled": true, "head_sampling_rate": 0.1 }
   }
 }
-`,
-}
-
-const exampleWorkflowFiles = new Set(["tasks/say-hello.ts", "triggers/hello.ts", "workflows/hello.ts"])
-
-const defaultScripts = {
+`
+};
+var exampleWorkflowFiles = new Set(["tasks/say-hello.ts", "triggers/hello.ts", "workflows/hello.ts"]);
+var defaultScripts = {
   dev: "wrangler dev --config worker/wrangler.jsonc",
   deploy: "wrangler deploy --config worker/wrangler.jsonc",
-  typecheck:
-    "wrangler types worker/worker-configuration.d.ts --config worker/wrangler.jsonc && tsc --project worker/tsconfig.json --noEmit",
+  typecheck: "wrangler types worker/worker-configuration.d.ts --config worker/wrangler.jsonc && tsc --project worker/tsconfig.json --noEmit",
   test: "vitest run --config worker/vitest.config.ts",
-  libclank: "bun ./node_modules/libclank/dist/bin/libclank.js",
-}
-
-export function createProject(options: NewProjectOptions): NewProjectResult {
-  const directory = resolve(options.directory)
-  const name = normalizeName(options.name ?? basename(directory))
-  const replacements: Record<string, string> = {
+  libclank: "bun ./node_modules/libclank/dist/bin/libclank.js"
+};
+function createProject(options) {
+  const directory = resolve(options.directory);
+  const name = normalizeName(options.name ?? basename(directory));
+  const replacements = {
     __PROJECT_NAME__: name,
     __WORKER_NAME__: name,
-    __DATE__: new Date().toISOString().slice(0, 10),
-  }
-  const created: string[] = []
-  const skipped: string[] = []
-  const hasWorkflowRegistry = existsSync(join(directory, "workflows/index.ts"))
-
-  mkdirSync(directory, { recursive: true })
-
+    __DATE__: new Date().toISOString().slice(0, 10)
+  };
+  const created = [];
+  const skipped = [];
+  const hasWorkflowRegistry = existsSync(join(directory, "workflows/index.ts"));
+  mkdirSync(directory, { recursive: true });
   for (const [relativePath, source] of Object.entries(files)) {
-    const destination = join(directory, relativePath)
+    const destination = join(directory, relativePath);
     if (hasWorkflowRegistry && exampleWorkflowFiles.has(relativePath) && !existsSync(destination)) {
-      skipped.push(`${relativePath} (existing workflow registry)`)
-      continue
+      skipped.push(`${relativePath} (existing workflow registry)`);
+      continue;
     }
     if (existsSync(destination)) {
-      skipped.push(relativePath)
-      continue
+      skipped.push(relativePath);
+      continue;
     }
-    mkdirSync(dirname(destination), { recursive: true })
-    writeFileSync(destination, replaceTokens(source, replacements))
-    created.push(relativePath)
+    mkdirSync(dirname(destination), { recursive: true });
+    writeFileSync(destination, replaceTokens(source, replacements));
+    created.push(relativePath);
   }
-
-  const manifestPath = join(directory, "package.json")
+  const manifestPath = join(directory, "package.json");
   if (existsSync(manifestPath)) {
-    mergePackageJson(manifestPath, name, options.version, created, skipped)
+    mergePackageJson(manifestPath, name, options.version, created, skipped);
   } else {
-    const manifest = createPackageJson(name, options.version)
-    writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
-    created.push("package.json")
+    const manifest = createPackageJson(name, options.version);
+    writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}
+`);
+    created.push("package.json");
   }
-
-  return { created, skipped }
+  return { created, skipped };
 }
-
-function createPackageJson(name: string, version: string) {
+function createPackageJson(name, version) {
   return {
     name,
     private: true,
@@ -240,92 +227,132 @@ function createPackageJson(name: string, version: string) {
     scripts: defaultScripts,
     dependencies: {
       effect: "4.0.0-rc.116",
-      libclank: `git+https://github.com/leostera/libclank.git#v${version}`,
+      libclank: `git+https://github.com/leostera/libclank.git#v${version}`
     },
     devDependencies: {
       typescript: "^5.7.2",
       vitest: "^4.1.0",
-      wrangler: "^4.136.0",
-    },
-  }
+      wrangler: "^4.136.0"
+    }
+  };
 }
-
-function mergePackageJson(
-  manifestPath: string,
-  name: string,
-  version: string,
-  created: string[],
-  skipped: string[],
-): void {
-  const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Record<string, unknown>
-  let changed = false
-
+function mergePackageJson(manifestPath, name, version, created, skipped) {
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  let changed = false;
   if (manifest.name === undefined) {
-    manifest.name = name
-    changed = true
+    manifest.name = name;
+    changed = true;
   }
   if (manifest.type === undefined) {
-    manifest.type = "module"
-    changed = true
+    manifest.type = "module";
+    changed = true;
   }
   if (manifest.packageManager === undefined) {
-    manifest.packageManager = "bun@1.4.2"
-    changed = true
+    manifest.packageManager = "bun@1.4.2";
+    changed = true;
   }
-
-  const dependencies = objectProperty(manifest, "dependencies")
+  const dependencies = objectProperty(manifest, "dependencies");
   if (dependencies.libclank === undefined) {
-    dependencies.libclank = `git+https://github.com/leostera/libclank.git#v${version}`
-    changed = true
+    dependencies.libclank = `git+https://github.com/leostera/libclank.git#v${version}`;
+    changed = true;
   }
   if (dependencies.effect === undefined) {
-    dependencies.effect = "4.0.0-rc.116"
-    changed = true
+    dependencies.effect = "4.0.0-rc.116";
+    changed = true;
   }
-
-  const devDependencies = objectProperty(manifest, "devDependencies")
+  const devDependencies = objectProperty(manifest, "devDependencies");
   for (const [key, versionRange] of Object.entries({ typescript: "^5.7.2", vitest: "^4.1.0", wrangler: "^4.136.0" })) {
     if (devDependencies[key] === undefined) {
-      devDependencies[key] = versionRange
-      changed = true
+      devDependencies[key] = versionRange;
+      changed = true;
     }
   }
-
-  const scripts = objectProperty(manifest, "scripts")
+  const scripts = objectProperty(manifest, "scripts");
   for (const [key, command] of Object.entries(defaultScripts)) {
     if (scripts[key] === undefined) {
-      scripts[key] = command
-      changed = true
+      scripts[key] = command;
+      changed = true;
     }
   }
-
   if (changed) {
-    writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
-    created.push("package.json (updated)")
+    writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}
+`);
+    created.push("package.json (updated)");
   } else {
-    skipped.push("package.json (already configured)")
+    skipped.push("package.json (already configured)");
   }
 }
-
-function objectProperty(parent: Record<string, unknown>, key: string): Record<string, string> {
-  const current = parent[key]
+function objectProperty(parent, key) {
+  const current = parent[key];
   if (current !== undefined && (typeof current !== "object" || current === null || Array.isArray(current))) {
-    throw new Error(`Cannot scaffold project: package.json ${key} must be an object`)
+    throw new Error(`Cannot scaffold project: package.json ${key} must be an object`);
   }
-  if (current === undefined) parent[key] = {}
-  return parent[key] as Record<string, string>
+  if (current === undefined)
+    parent[key] = {};
+  return parent[key];
 }
-
-function normalizeName(value: string): string {
-  const name = value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-  if (!name) throw new Error("Project name must contain at least one letter or number")
-  return name
+function normalizeName(value) {
+  const name = value.trim().toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
+  if (!name)
+    throw new Error("Project name must contain at least one letter or number");
+  return name;
 }
+function replaceTokens(source, replacements) {
+  return Object.entries(replacements).reduce((result, [token, value]) => result.replaceAll(token, value), source);
+}
+// package.json
+var version = "0.1.9";
 
-function replaceTokens(source: string, replacements: Record<string, string>): string {
-  return Object.entries(replacements).reduce((result, [token, value]) => result.replaceAll(token, value), source)
+// bin/libclank.ts
+var [command, ...args] = process.argv.slice(2);
+if (command === "--help" || command === "-h" || command === undefined || args.includes("--help")) {
+  printHelp();
+  process.exit(0);
+}
+if (command !== "new") {
+  console.error(`Unknown command: ${command}`);
+  printHelp();
+  process.exit(1);
+}
+try {
+  let directory = ".";
+  let name;
+  for (let index = 0;index < args.length; index += 1) {
+    const argument = args[index];
+    if (argument === "--name") {
+      name = args[index + 1];
+      if (!name || name.startsWith("--"))
+        throw new Error("--name requires a project name");
+      index += 1;
+    } else if (argument.startsWith("--")) {
+      throw new Error(`Unknown option: ${argument}`);
+    } else {
+      directory = argument;
+    }
+  }
+  const target = resolve2(directory);
+  name ??= basename2(target);
+  const result = createProject({ directory: target, name, version });
+  console.log(`Initialized LibClank project in ${target}`);
+  for (const path of result.created)
+    console.log(`  + ${path}`);
+  for (const path of result.skipped)
+    console.log(`  - kept ${path}`);
+  console.log(`
+Next steps:`);
+  console.log(`  cd ${target}`);
+  console.log("  bun install");
+  console.log("  bun run dev");
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
+}
+function printHelp() {
+  console.log(`LibClank ${version}
+
+Usage:
+  libclank new [directory] [--name <project-name>]
+
+Scaffolds a Bun + Cloudflare Worker project with agents, tasks, triggers,
+and workflows. Existing files are kept; only missing starter files are added.`);
 }

@@ -1,6 +1,7 @@
 node_modules/
 .clank/
-dist/
+packages/*/dist/
+apps/*/dist/
 build/
 summaries/
 link-digests/

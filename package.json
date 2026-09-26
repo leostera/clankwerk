@@ -1,41 +1,33 @@
 {
   "name": "libclank",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Typed, code-first durable workflows and agent runtime",
   "private": true,
   "repository": {
     "type": "git",
-    "url": "ssh://git@github.com/leostera/libclank.git"
+    "url": "https://github.com/leostera/libclank.git"
   },
   "homepage": "https://github.com/leostera/libclank#readme",
   "type": "module",
   "files": [
-    "bin",
-    "cli",
-    "scripts/prepare-package.ts",
-    "packages/core/dist",
-    "packages/agent/dist",
-    "packages/artifacts/dist",
-    "packages/scheduler/dist",
-    "packages/cloudflare/dist",
-    "packages/ui/dist"
+    "dist"
   ],
   "exports": {
     "./core": {
-      "types": "./packages/core/dist/index.d.ts",
-      "default": "./packages/core/dist/index.js"
+      "types": "./dist/core/index.d.ts",
+      "default": "./dist/core/index.js"
     },
     "./agent": {
-      "types": "./packages/agent/dist/index.d.ts",
-      "default": "./packages/agent/dist/index.js"
+      "types": "./dist/agent/index.d.ts",
+      "default": "./dist/agent/index.js"
     },
     "./cloudflare": {
-      "types": "./packages/cloudflare/dist/index.d.ts",
-      "default": "./packages/cloudflare/dist/index.js"
+      "types": "./dist/cloudflare/index.d.ts",
+      "default": "./dist/cloudflare/index.js"
     },
     "./ui": {
-      "types": "./packages/ui/dist/index.d.ts",
-      "default": "./packages/ui/dist/index.js"
+      "types": "./dist/ui/index.d.ts",
+      "default": "./dist/ui/index.js"
     }
   },
   "packageManager": "bun@1.4.2",
@@ -44,26 +36,27 @@
     "apps/*"
   ],
   "bin": {
-    "libclank": "./bin/libclank.ts"
+    "libclank": "./dist/bin/libclank.js"
   },
   "scripts": {
     "libclank": "bun ./bin/libclank.ts",
-    "build": "bun run build:workspaces",
+    "build": "bun run build:workspaces && bun scripts/build-distribution.ts",
     "build:workspaces": "bun run --filter @libclank/core build && bun run --filter @libclank/artifacts build && bun run --filter @libclank/agent build && bun run --filter @libclank/gitlab build && bun run --filter @libclank/scheduler build && bun run --filter @libclank/local build && bun run --filter @libclank/cloudflare build && bun run --filter @libclank/ui build && bun run --filter @libclank/app-agent build && bun run --filter @libclank/app-scheduler build",
     "build:package": "bun run --filter @libclank/core build && bun run --filter @libclank/artifacts build && bun run --filter @libclank/agent build && bun run --filter @libclank/scheduler build && bun run --filter @libclank/cloudflare build && bun run --filter @libclank/ui build",
+    "build:distribution": "bun run build:package && bun scripts/build-distribution.ts",
     "typecheck": "bun run build && bun run typecheck:packages",
     "typecheck:packages": "bun run --filter '*' typecheck",
-    "test": "bun run build && bun run test:unit && bun run test:e2e && bun run test:cli && bun run test:workers",
+    "test": "bun run build && bun run test:unit && bun run test:e2e && bun run test:cli && bun run test:workers && bun run test:distribution",
     "test:unit": "vitest run packages",
     "test:e2e": "vitest run tests/e2e",
     "test:cli": "vitest run tests/cli-new.test.ts",
     "test:workers": "bun run --filter @libclank/app-scheduler test",
+    "test:distribution": "vitest run tests/package-distribution.test.ts",
     "example:url-summary": "bun run build && bun examples/local-url-summary/server.ts",
     "example:link-digest": "bun run build && bun examples/link-digest/server.ts",
     "example:parallel-analyses": "bun run build && bun examples/parallel-analyses/server.ts",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "prepare": "bun scripts/prepare-package.ts"
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.22.0",

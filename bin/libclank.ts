@@ -51,7 +51,7 @@ function printHelp(): void {
   console.log(`LibClank ${version}
 
 Usage:
-  bun run libclank new [directory] [--name <project-name>]
+  libclank new [directory] [--name <project-name>]
 
 Scaffolds a Bun + Cloudflare Worker project with agents, tasks, triggers,
 and workflows. Existing files are kept; only missing starter files are added.`)
