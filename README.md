@@ -79,7 +79,7 @@ The scheduler persists workflow metadata, node instances, inputs, outputs, attem
 LibClank is available as a built Bun package directly from its public GitHub repository. Add a versioned tag over HTTPS:
 
 ```bash
-bun add "git+https://github.com/leostera/libclank.git#v0.1.9"
+bun add "git+https://github.com/leostera/libclank.git#v0.1.10"
 ```
 
 Import the supported package entry points explicitly:

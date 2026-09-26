@@ -243,6 +243,7 @@ function createPackageJson(name: string, version: string) {
       libclank: `git+https://github.com/leostera/libclank.git#v${version}`,
     },
     devDependencies: {
+      "@types/node": "^22.10.2",
       typescript: "^5.7.2",
       vitest: "^4.1.0",
       wrangler: "^4.136.0",
@@ -284,7 +285,12 @@ function mergePackageJson(
   }
 
   const devDependencies = objectProperty(manifest, "devDependencies")
-  for (const [key, versionRange] of Object.entries({ typescript: "^5.7.2", vitest: "^4.1.0", wrangler: "^4.136.0" })) {
+  for (const [key, versionRange] of Object.entries({
+    "@types/node": "^22.10.2",
+    typescript: "^5.7.2",
+    vitest: "^4.1.0",
+    wrangler: "^4.136.0",
+  })) {
     if (devDependencies[key] === undefined) {
       devDependencies[key] = versionRange
       changed = true

@@ -13,7 +13,7 @@ afterEach(() => {
 describe("libclank new", () => {
   it("creates a Cloudflare project with agent, task, trigger, and workflow entry points", () => {
     const directory = temporaryDirectory()
-    const result = createProject({ directory, name: "My Example", version: "0.1.9" })
+    const result = createProject({ directory, name: "My Example", version: "0.1.10" })
     const packageJson = JSON.parse(readFileSync(join(directory, "package.json"), "utf8"))
 
     expect(result.created).toContain("agents/index.ts")
@@ -27,7 +27,8 @@ describe("libclank new", () => {
     expect(result.created).toContain("worker/tsconfig.json")
     expect(result.created).toContain("worker/vitest.config.ts")
     expect(packageJson.name).toBe("my-example")
-    expect(packageJson.dependencies.libclank).toBe("git+https://github.com/leostera/libclank.git#v0.1.9")
+    expect(packageJson.devDependencies["@types/node"]).toBe("^22.10.2")
+    expect(packageJson.dependencies.libclank).toBe("git+https://github.com/leostera/libclank.git#v0.1.10")
     expect(packageJson.trustedDependencies).toBeUndefined()
     expect(packageJson.scripts.dev).toContain("worker/wrangler.jsonc")
     expect(packageJson.scripts.typecheck).toContain("worker/tsconfig.json")
@@ -42,7 +43,7 @@ describe("libclank new", () => {
     mkdirSync(join(directory, "workflows"), { recursive: true })
     writeFileSync(registryPath, "export const workflows = [] as const\n")
 
-    const result = createProject({ directory, name: "existing-app", version: "0.1.9" })
+    const result = createProject({ directory, name: "existing-app", version: "0.1.10" })
 
     expect(readFileSync(registryPath, "utf8")).toBe("export const workflows = [] as const\n")
     expect(result.skipped).toContain("tasks/say-hello.ts (existing workflow registry)")
@@ -63,7 +64,7 @@ describe("libclank new", () => {
       }),
     )
 
-    const result = createProject({ directory, name: "ignored-name", version: "0.1.9" })
+    const result = createProject({ directory, name: "ignored-name", version: "0.1.10" })
     const packageJson = JSON.parse(readFileSync(join(directory, "package.json"), "utf8"))
 
     expect(readFileSync(join(directory, "worker/index.ts"), "utf8")).toBe("// existing worker\n")

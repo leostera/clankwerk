@@ -230,6 +230,7 @@ function createPackageJson(name, version) {
       libclank: `git+https://github.com/leostera/libclank.git#v${version}`
     },
     devDependencies: {
+      "@types/node": "^22.10.2",
       typescript: "^5.7.2",
       vitest: "^4.1.0",
       wrangler: "^4.136.0"
@@ -261,7 +262,12 @@ function mergePackageJson(manifestPath, name, version, created, skipped) {
     changed = true;
   }
   const devDependencies = objectProperty(manifest, "devDependencies");
-  for (const [key, versionRange] of Object.entries({ typescript: "^5.7.2", vitest: "^4.1.0", wrangler: "^4.136.0" })) {
+  for (const [key, versionRange] of Object.entries({
+    "@types/node": "^22.10.2",
+    typescript: "^5.7.2",
+    vitest: "^4.1.0",
+    wrangler: "^4.136.0"
+  })) {
     if (devDependencies[key] === undefined) {
       devDependencies[key] = versionRange;
       changed = true;
@@ -301,7 +307,7 @@ function replaceTokens(source, replacements) {
   return Object.entries(replacements).reduce((result, [token, value]) => result.replaceAll(token, value), source);
 }
 // package.json
-var version = "0.1.9";
+var version = "0.1.10";
 
 // bin/libclank.ts
 var [command, ...args] = process.argv.slice(2);

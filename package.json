@@ -1,6 +1,6 @@
 {
   "name": "libclank",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Typed, code-first durable workflows and agent runtime",
   "private": true,
   "repository": {
