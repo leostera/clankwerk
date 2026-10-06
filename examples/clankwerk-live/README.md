@@ -2,7 +2,7 @@
 
 Deployed example for `clankwerk.leostera.dev`. Public trigger hostname: `triggers.clankwerk.leostera.dev`.
 
-This example imports `@leostera/clankwerk` from the repository's root `src/` via TypeScript/Vite aliases, so it works before the package is published. Its `setup` and `deploy` scripts run the root CLI source. It is **not** a separate workspace or publishable package; use `bunx @leostera/clankwerk new` (once published) to create your own project.
+This example imports `@leostera/clankwerk` from the repository's root `src/` via TypeScript/Vite aliases to test this checkout. Its `setup` and `deploy` scripts run the root CLI source. It is **not** a separate workspace or publishable package; use `bunx @leostera/clankwerk new` to create your own project.
 
 ## Try locally
 

@@ -50,7 +50,7 @@ Both examples are included in scaffolded projects. See the [getting-started guid
 - [Getting started](docs/getting-started.md) — prerequisites, local example, scaffolding, and deployment
 - [Generated project guide](template/README.md) — Access setup, API routes, and current limitations
 
-**This is an early starter, not production-ready.** `@leostera/clankwerk` is not published yet. The dashboard is minimal, and public triggers are not enabled. See the guides before deploying.
+**This is an early starter, not production-ready.** The dashboard is minimal, and public triggers are not enabled. See the guides before deploying.
 
 ## Try the example
 

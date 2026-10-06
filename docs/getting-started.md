@@ -2,7 +2,7 @@
 
 Clankwerk puts your agent definitions, workflow graphs, and Cloudflare deployment in one project you own. A workflow run gets its own Durable Object; Think-backed agents can have multiple independently stateful instances. The current starter is **not production-ready**: signed public triggers, a full operational dashboard, and strong recovery/idempotency guarantees are still unfinished.
 
-## Try `hello` locally (no package publish required)
+## Try `hello` locally
 
 Install [Bun](https://bun.sh/) and Node 22.18+ (Node 24 recommended). From this repository checkout:
 
@@ -32,8 +32,6 @@ curl -sS "$BASE_URL/api/audit"
 A completed run has the `Hello, World!` task output in `steps`. The local runtime is **not** a simulation of Cloudflare Access, DNS, or deployment permissions. This example's configured production hostnames belong to the maintainer; do not deploy it to a different account. See the [example README](../examples/clankwerk-live/README.md) for its configuration.
 
 ## Scaffold your own project
-
-**`@leostera/clankwerk` has not been published yet.** The command below is the intended path after publication. Until then, use the local example above; running `new` from source creates a template whose `^0.1.0` package dependency cannot yet be installed from the registry.
 
 ```sh
 bunx @leostera/clankwerk new my-clankwerk \

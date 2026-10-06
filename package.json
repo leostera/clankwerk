@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "type": "module",
   "packageManager": "bun@1.4.2",
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "clankwerk": "./src/cli.mjs"
   },
