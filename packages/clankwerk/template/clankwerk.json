@@ -1,0 +1,5 @@
+{
+  "adminHostname": "__ADMIN__",
+  "triggerHostname": "__TRIGGER__",
+  "accessPolicyId": "__POLICY__"
+}

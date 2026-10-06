@@ -1,6 +1,11 @@
 node_modules/
 .clank/
 dist/
+.cloudflare/
+.dev.vars*
+.env
+.env.*
+!.env.example
 summaries/
 link-digests/
 parallel-analysis-artifacts/

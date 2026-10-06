@@ -1,0 +1,27 @@
+{
+  "name": "@leostera/clankwerk",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "clankwerk": "./src/cli.mjs"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "template"
+  ],
+  "scripts": {
+    "test": "vitest run --root ../.. packages/clankwerk/src",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "effect": "4.0.0-rc.116"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.0"
+  }
+}

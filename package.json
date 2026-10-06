@@ -1,5 +1,5 @@
 {
-  "name": "libclank",
+  "name": "clankwerk",
   "private": true,
   "type": "module",
   "packageManager": "bun@1.3.11",
@@ -10,7 +10,7 @@
   "scripts": {
     "build": "bun run --filter '*' build",
     "typecheck": "bun run --filter '*' typecheck",
-    "test": "bun run build && vitest run && bun run --filter @libclank/app-scheduler test",
+    "test": "bun run build && vitest run && bun run --filter @libclank/app-scheduler test && bun run --filter @leostera/clankwerk test",
     "example:url-summary": "bun run build && bun examples/local-url-summary/server.ts",
     "example:link-digest": "bun run build && bun examples/link-digest/server.ts",
     "example:parallel-analyses": "bun run build && bun examples/parallel-analyses/server.ts",

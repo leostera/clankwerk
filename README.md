@@ -1,49 +1,31 @@
-# LibClank
+# Clankwerk
 
-Typed, code-first agentic workflows with durable local execution and an operational dashboard.
+Cloudflare-native, code-first agents and workflow graphs. Each scaffolded project belongs to its own Cloudflare account and deploys with Cloudflare CLI (`cf`). See [RFD0002](docs/rfds/RFD0002-clankwerk-cloudflare-native.md) for the target architecture.
 
-Define workflows in TypeScript with Effect. LibClank persists runs, task instances, dependencies, attempts, outputs, artifacts, leases, and events—not JavaScript closures.
-
-```text
-webhook
-  → fetch source
-    → analyze topic
-    → analyze style
-    → analyze confidence
-```
-
-## User manual
-
-Start with the [LibClank Manual](manual/README.md):
-
-- [Getting started](manual/01-getting-started.md)
-- [Authoring workflows](manual/03-authoring-workflows.md)
-- [Local durable runtime](manual/04-local-durable-runtime.md)
-- [Agent tasks and artifacts](manual/05-agent-tasks-and-artifacts.md)
-- [Dashboard and operations](manual/06-dashboard-and-operations.md)
-- [Testing your workflows](manual/07-testing.md)
-- [Cloudflare and deployment](manual/08-cloudflare-and-deployment.md)
-- [Reference and limitations](manual/10-reference-and-limitations.md)
-
-## Try an example
+## Starter (in progress)
 
 ```bash
 bun install
-bun run example:parallel-analyses
+bun packages/clankwerk/src/cli.mjs new my-clankwerk \
+  --domain myclankwerk.example.com \
+  --access-policy <existing-reusable-allow-policy-uuid>
+cd my-clankwerk
+bun install
+bun run dev
+# Provisions and verifies Access before the first deploy:
+bun run setup
+# Checks Access, then delegates to cf deploy:
+bun run deploy
+# Or run cf deploy directly once Access is configured.
 ```
 
-Then open <http://localhost:8789/>.
+Once published, use `bunx @leostera/clankwerk new` / `bunx @leostera/clankwerk deploy`. The repository also includes [`examples/clankwerk-live/`](examples/clankwerk-live/) configured for `clankwerk.leostera.dev`; its Worker, Access application, and D1 index are deployed; an authenticated `hello` run completed successfully in a live smoke test. The starter contains a Think-backed agent definition, a typed graph workflow, a per-run Durable Object coordinator for static steps, and separate admin/trigger host routing. No public webhook routes are enabled by default. Deployment checks for an existing Access application before delegating to `cf deploy`. D1 indexes runs and events for the operational API. The generated `README.md` documents its current limits; **it is not yet production-complete**.
 
-The parallel-analysis example uses local SQLite, Pi-backed agent tasks, a run graph, and persisted logs. It requires Pi to be installed and authenticated.
+The graph DSL and manifest builder now live directly in `packages/clankwerk`, with no `@libclank/*` dependency. Other legacy packages, examples, and manual pages remain for reference during the rewrite; they are not Clankwerk's target architecture.
 
-## Repository checks
+## Checks
 
 ```bash
-bun run build
 bun run typecheck
 bun run test
 ```
-
-## Contributor documentation
-
-Architecture, implementation rationale, and roadmap material live in [`docs/rfds/`](docs/rfds/), beginning with [RFD0001](docs/rfds/RFD0001-libclank-design.md).
