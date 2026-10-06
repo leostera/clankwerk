@@ -53,7 +53,8 @@ The dashboard lives at `myclankwerk.example.com` and the trigger hostname is der
 
 - Define a Think agent in `agents/`; each named instance has its own Durable Object state.
 - Define a typed graph in `workflows/`; the starter includes `hello`, which accepts a JSON string.
-- Start `hello` by POSTing to `/api/workflows/hello/runs` on the **admin** hostname. Poll `/api/runs/<id>`; `/api/runs` and `/api/audit` expose D1-backed lists.
+- Open the read-only React dashboard on the **admin** hostname to search definitions and recent runs, inspect a workflow's source graph, and follow run steps and recorded events. The protected `hello-api` entrypoint records accepted starts in Trigger history; workflow tasks that call agents through `context.callAgent(...)` record actual agent-to-run links. The sample `hello` does not call an agent. Direct agent sessions, rejected trigger requests and public webhook deliveries are not indexed. Settings offers local Light/Dark/Auto appearance, not runtime configuration. The local example shows the same dashboard on localhost, without Access.
+- Start `hello` by POSTing to `/api/workflows/hello/runs` on the **admin** hostname. Follow the run in the dashboard or poll `/api/runs/<id>`; `/api/runs` and `/api/audit` expose D1-backed lists.
 - The separate **public trigger** hostname returns 404 for every request. Do not route unauthenticated webhooks to the admin API or assume a signature verifier exists yet.
 
 The generated [project README](../template/README.md) documents the current operational limits. The [architecture RFD](rfds/RFD0002-clankwerk-cloudflare-native.md) describes the intended product, not a promise that every feature is implemented.

@@ -7,11 +7,20 @@
     "noEmit": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
+    "jsx": "react-jsx",
     "types": ["@cloudflare/workers-types"],
     "baseUrl": ".",
     "paths": {
       "@leostera/clankwerk": ["../../src/index.ts"]
     }
   },
-  "include": ["worker", "agents", "workflows", "cloudflare.config.ts", "vite.config.ts", ".cloudflare/types"]
+  "include": [
+    "dashboard",
+    "worker",
+    "agents",
+    "workflows",
+    "cloudflare.config.ts",
+    "vite.config.ts",
+    ".cloudflare/types"
+  ]
 }

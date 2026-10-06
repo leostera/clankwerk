@@ -1,19 +1,16 @@
 import { DurableObject } from "cloudflare:workers"
-import { getAgentByName } from "agents"
 import { Effect } from "effect"
-import { Id, createWorkflowManifest } from "@leostera/clankwerk"
-import { Researcher, definition as researcher } from "../agents/researcher.ts"
+import { getAgentByName } from "agents"
+import { Id, createWorkflowManifest, type NodeId, type RunId } from "@leostera/clankwerk"
+import { Researcher } from "../agents/researcher.ts"
 import hello from "../workflows/hello.ts"
-import { ensureIndex, projectRun } from "./index.ts"
+import { projectRun } from "./index.ts"
+import { invokeRecordedAgent, type AgentCall, type AgentEvent } from "./lineage.ts"
+import { createApp } from "./api.ts"
 
 export { Researcher }
 
-interface Env {
-  RESEARCHER: DurableObjectNamespace<Researcher>
-  RUNS: DurableObjectNamespace<WorkflowRun>
-  AI: Ai
-  INDEX: D1Database
-}
+type Env = Omit<Cloudflare.Env, "RESEARCHER"> & { RESEARCHER: DurableObjectNamespace<Researcher> }
 
 type Step = {
   id: string
@@ -29,10 +26,10 @@ type Run = {
   definitionHash: string
   status: "running" | "completed" | "failed" | "incompatible"
   steps: Step[]
-  events: { at: number; type: string; stepId?: string }[]
+  origin?: { triggerId: string; kind: "api" }
+  agentCalls?: AgentCall[]
+  events: AgentEvent[]
 }
-
-const definitions = { [hello.id]: hello } as const
 
 async function manifest() {
   return createWorkflowManifest({
@@ -53,7 +50,7 @@ export class WorkflowRun extends DurableObject<Env> {
     }
   }
 
-  async start(workflowId: string, input: unknown): Promise<Run> {
+  async start(workflowId: string, input: unknown, origin?: Run["origin"]): Promise<Run> {
     const existing = await this.ctx.storage.get<Run>("run")
     if (existing) return existing
     if (workflowId !== hello.id) throw new Error("Unknown workflow")
@@ -75,6 +72,7 @@ export class WorkflowRun extends DurableObject<Env> {
       definitionHash: graph.definitionHash,
       status: "running",
       steps,
+      ...(origin ? { origin } : {}),
       events: [{ at: Date.now(), type: "run.started" }],
     }
     await this.save(run)
@@ -124,7 +122,23 @@ export class WorkflowRun extends DurableObject<Env> {
     await this.save(run)
     await this.ctx.storage.setAlarm(Date.now() + 60_000)
     try {
-      const output = await Effect.runPromise(implementation.node.execute(step.input))
+      const output = await Effect.runPromise(
+        implementation.node.execute(step.input, {
+          triggerValues: new Map(),
+          runId: run.id as RunId,
+          nodeId: step.id as NodeId,
+          callAgent: (agentId, instanceName, request) =>
+            invokeRecordedAgent(
+              run,
+              step.id,
+              agentId,
+              instanceName,
+              request,
+              () => this.save(run),
+              async (name, forwarded) => (await getAgentByName(this.env.RESEARCHER, name)).fetch(forwarded),
+            ),
+        }),
+      )
       // Persist only JSON data, never source closures or unserializable outputs.
       step.output = JSON.parse(JSON.stringify(output ?? null))
       step.status = "completed"
@@ -165,80 +179,4 @@ export class WorkflowRun extends DurableObject<Env> {
   }
 }
 
-const admin = "clankwerk.leostera.dev"
-const triggers = "triggers.clankwerk.leostera.dev"
-
-export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url)
-    if (url.hostname === triggers) return new Response("Not found", { status: 404 })
-    if (url.hostname !== admin && !["localhost", "127.0.0.1"].includes(url.hostname))
-      return new Response("Not found", { status: 404 })
-    if (url.pathname === "/api/definitions" && request.method === "GET")
-      return Response.json({ agents: [researcher.id], workflows: [hello.id], triggers: [] })
-    if (url.pathname === "/api/runs" && request.method === "GET") {
-      await ensureIndex(env.INDEX)
-      const rows = await env.INDEX.prepare("SELECT * FROM runs ORDER BY started_at DESC LIMIT 50").all()
-      return Response.json(rows.results)
-    }
-    if (url.pathname === "/api/audit" && request.method === "GET") {
-      await ensureIndex(env.INDEX)
-      const rows = await env.INDEX.prepare("SELECT * FROM audit ORDER BY at DESC, id DESC LIMIT 100").all()
-      return Response.json(rows.results)
-    }
-    const start = /^\/api\/workflows\/([^/]+)\/runs$/.exec(url.pathname)
-    if (start && request.method === "POST") {
-      if (start[1] !== hello.id) return new Response("Not found", { status: 404 })
-      if (Number(request.headers.get("content-length")) > 65_536) return new Response("Too large", { status: 413 })
-      let input: unknown
-      try {
-        const reader = request.body?.getReader()
-        if (!reader) throw new Error("Missing body")
-        const chunks: Uint8Array[] = []
-        let size = 0
-        while (true) {
-          const { value, done } = await reader.read()
-          if (done) break
-          size += value.byteLength
-          if (size > 65_536) {
-            await reader.cancel()
-            return new Response("Too large", { status: 413 })
-          }
-          chunks.push(value)
-        }
-        const bytes = new Uint8Array(size)
-        let offset = 0
-        for (const chunk of chunks) {
-          bytes.set(chunk, offset)
-          offset += chunk.byteLength
-        }
-        input = JSON.parse(new TextDecoder().decode(bytes))
-      } catch {
-        return new Response("Invalid JSON", { status: 400 })
-      }
-      const id = env.RUNS.newUniqueId()
-      return Response.json(await env.RUNS.get(id).start(hello.id, input), { status: 202 })
-    }
-    const status = /^\/api\/runs\/([0-9a-f-]+)$/.exec(url.pathname)
-    if (status && request.method === "GET") {
-      try {
-        const run = await env.RUNS.get(env.RUNS.idFromString(status[1])).status()
-        return run ? Response.json(run) : new Response("Not found", { status: 404 })
-      } catch {
-        return new Response("Not found", { status: 404 })
-      }
-    }
-    if (url.pathname.startsWith("/agents/researcher/") && url.pathname.split("/").length >= 4) {
-      const name = url.pathname.split("/")[3]
-      if (!name || name.length > 128) return new Response("Invalid instance", { status: 400 })
-      return (await getAgentByName(env.RESEARCHER, name)).fetch(request)
-    }
-    if (url.pathname !== "/" || request.method !== "GET") return new Response("Not found", { status: 404 })
-    return new Response(
-      `<!doctype html><html lang="en"><meta charset="utf-8"><title>Clankwerk</title>
-      <main><h1>Clankwerk</h1><h2>Agents</h2><p>${researcher.id}</p>
-      <h2>Workflows</h2><p>${hello.id}</p><p>Run via POST /api/workflows/${hello.id}/runs; inspect via GET /api/runs/:id.</p></main></html>`,
-      { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } },
-    )
-  },
-}
+export default createApp("clankwerk.leostera.dev", "triggers.clankwerk.leostera.dev", "clankwerk-live")

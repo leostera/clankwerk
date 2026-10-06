@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 2,
+  "title": "Design System: Clankwerk Operations",
+  "extensions": {
+    "colorMeta": {
+      "shell": {
+        "role": "neutral",
+        "displayName": "Quiet navigation rail",
+        "canonical": "#fafbfc",
+        "tonalRamp": ["#18222d", "#455365", "#56616e", "#a6afb7", "#e1e4e7", "#fafbfc"]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Action copper",
+        "canonical": "#b94f2e",
+        "tonalRamp": ["#67291c", "#91372e", "#a94324", "#b94f2e", "#d7653e", "#f3d2c5"]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Open work surface",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#18222d", "#43515e", "#89949f", "#e1e4e7", "#fafbfc", "#ffffff"]
+      },
+      "darkCanvas": {
+        "role": "neutral",
+        "displayName": "Dark work surface",
+        "canonical": "#121a22",
+        "tonalRamp": ["#121a22", "#19232e", "#202b36", "#35414d", "#aebbc7", "#e8edf1"]
+      }
+    },
+    "typographyMeta": {
+      "headline": { "displayName": "Page heading", "purpose": "Direct fixed-scale operator title." },
+      "body": { "displayName": "Interface text", "purpose": "Readable operational data." },
+      "label": { "displayName": "Data label", "purpose": "Table and count descriptors." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "state transition", "value": "160ms ease-out", "purpose": "Hover and focus feedback." },
+      { "name": "cog turn", "value": "28s linear", "purpose": "A quiet brand detail, disabled under reduced motion." }
+    ],
+    "breakpoints": [
+      { "name": "stack run sections", "value": "1050px" },
+      { "name": "mobile navigation", "value": "740px" },
+      { "name": "single-column overview", "value": "560px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Active navigation",
+      "kind": "nav",
+      "description": "Selected view in the quiet project rail.",
+      "html": "<a class=\"nav-link nav-link--current\" href=\"/workflows\">Workflows</a>",
+      "css": ".nav-link{min-height:44px;color:#455365}.nav-link--current{color:#18222d;background:#e9ecef;font-weight:650}.nav-link:focus-visible{outline:2px solid #c7502b;outline-offset:3px}"
+    },
+    {
+      "name": "Entity row",
+      "kind": "list",
+      "description": "Full-width link to an actual definition.",
+      "html": "<ul class=\"entity-list\"><li><a href=\"/agents/researcher\">researcher</a></li></ul>",
+      "css": ".entity-list{list-style:none;padding:0}.entity-list li{border-bottom:1px solid #e1e4e7}.entity-list a{display:flex;align-items:center;min-height:54px;padding:8px 4px}"
+    },
+    {
+      "name": "Sidebar quick search",
+      "kind": "input",
+      "refersTo": "search",
+      "description": "Keyboard-accessible search from any project view; results are scoped to loaded definitions and recent indexed runs.",
+      "html": "<form class=\"sidebar-search\" action=\"/\"><input type=\"search\" name=\"q\" aria-label=\"Quick search\" /></form>",
+      "css": ".sidebar-search{display:flex;align-items:center;min-height:42px;border:1px solid #c8cfd5;border-radius:6px}.sidebar-search:focus-within{outline:2px solid #c7502b;outline-offset:2px}"
+    },
+    {
+      "name": "Completed status",
+      "kind": "status",
+      "description": "Semantic dot and text only when the API reports completion.",
+      "html": "<span class=\"status status--completed\"><span class=\"status-dot\"></span>completed</span>",
+      "css": ".status{display:inline-flex;gap:7px;align-items:center}.status--completed{color:#176a42}.status-dot{height:7px;width:7px;border-radius:50%;background:currentColor}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Operations Map",
+    "overview": "A quietly turning cog, quick search, real expandable source-item groups, separated Settings, and a bottommost collapse control orient operators. The light or dark work surface makes mediated agent calls, accepted API starts and run events easy to follow. Cloud dashboards inspire density, not branding.",
+    "keyCharacteristics": [
+      "Fast path from definition to run and events.",
+      "Real source and indexed facts only.",
+      "Consistent loading, empty, error, and focus states."
+    ],
+    "rules": [
+      {
+        "name": "The Recorded-State Rule",
+        "body": "A status color only describes a status actually returned by the API. Missing data is unavailable, not success.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "Do show manifest topology and sample limits.",
+      "Do preserve keyboard focus, mobile navigation and browser-local appearance choices."
+    ],
+    "donts": [
+      "Don't imply mediated agent calls include direct sessions, accepted API starts include public webhooks, or events are spans.",
+      "Don't use decorative metrics cards or placeholder charts."
+    ]
+  }
+}

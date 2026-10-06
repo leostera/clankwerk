@@ -1,4 +1,5 @@
 export { Id } from "./graph/id.js"
+export type { NodeId, RunId } from "./graph/id.js"
 export { Node } from "./graph/node.js"
 export { Task } from "./graph/task.js"
 export { Triggers } from "./graph/trigger.js"

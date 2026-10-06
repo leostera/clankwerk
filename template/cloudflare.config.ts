@@ -5,6 +5,7 @@ export default defineConfig({
   worker: {
     name: "__NAME__",
     entrypoint,
+    assets: { runWorkerFirst: true, notFoundHandling: "none", htmlHandling: "none" },
     compatibilityDate: "2026-10-06",
     compatibilityFlags: ["nodejs_compat"],
     domains: ["__ADMIN__", "__TRIGGER__"],
@@ -13,6 +14,7 @@ export default defineConfig({
     observability: { enabled: true, traces: { enabled: true } },
     env: {
       AI: bindings.ai(),
+      ASSETS: bindings.assets(),
       INDEX: bindings.d1({ name: "__NAME__-index" }),
       RESEARCHER: bindings.durableObject({ worker: "__NAME__", exportName: "Researcher" }),
       RUNS: bindings.durableObject({ worker: "__NAME__", exportName: "WorkflowRun" }),

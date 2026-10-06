@@ -5,6 +5,7 @@ export default defineConfig({
   worker: {
     name: "clankwerk-live",
     entrypoint,
+    assets: { runWorkerFirst: true, notFoundHandling: "none", htmlHandling: "none" },
     compatibilityDate: "2026-10-06",
     compatibilityFlags: ["nodejs_compat"],
     domains: ["clankwerk.leostera.dev", "triggers.clankwerk.leostera.dev"],
@@ -13,6 +14,7 @@ export default defineConfig({
     observability: { enabled: true, traces: { enabled: true } },
     env: {
       AI: bindings.ai(),
+      ASSETS: bindings.assets(),
       INDEX: bindings.d1({ name: "clankwerk-live-index" }),
       RESEARCHER: bindings.durableObject({ worker: "clankwerk-live", exportName: "Researcher" }),
       RUNS: bindings.durableObject({ worker: "clankwerk-live", exportName: "WorkflowRun" }),

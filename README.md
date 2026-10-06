@@ -48,9 +48,9 @@ Both examples are included in scaffolded projects. See the [getting-started guid
 ## User guide
 
 - [Getting started](docs/getting-started.md) — prerequisites, local example, scaffolding, and deployment
-- [Generated project guide](template/README.md) — Access setup, API routes, and current limitations
+- [Generated project guide](template/README.md) — Access setup, dashboard views, API routes, and current limitations
 
-**This is an early starter, not production-ready.** The dashboard is minimal, and public triggers are not enabled. See the guides before deploying.
+**This is an early starter, not production-ready.** Its React dashboard is read-only for project data (browser-local appearance is configurable); the protected run API records accepted starts, while public webhook triggers are not enabled. See the guides before deploying.
 
 ## Try the example
 

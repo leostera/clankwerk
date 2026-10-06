@@ -7,6 +7,8 @@ export interface ExecutionContext {
   readonly triggerValues: ReadonlyMap<TriggerId, unknown>
   readonly runId?: import("./id.js").RunId
   readonly nodeId?: NodeId
+  /** Workflow-mediated calls are recorded against this run and step before dispatch. */
+  readonly callAgent?: (agentId: string, instanceName: string, request: Request) => Promise<Response>
   readonly observer?: SchedulerObserver
 }
 
