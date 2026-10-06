@@ -5,12 +5,11 @@
   "scripts": {
     "dev": "cf dev",
     "build": "cf build",
-    "setup": "clankwerk setup",
-    "deploy": "clankwerk check && cf deploy",
+    "setup": "bun ../../src/cli.mjs setup",
+    "deploy": "bun ../../src/cli.mjs check && cf deploy",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@leostera/clankwerk": "file:../../packages/clankwerk",
     "@cloudflare/think": "^0.20.0",
     "agents": "^0.26.0",
     "effect": "4.0.0-rc.116"

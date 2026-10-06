@@ -2,17 +2,17 @@
 
 - Feature Name: `clankwerk-cloudflare-native`
 - Status: Draft
-- Supersedes: RFD0001 as the target architecture; retains only the typed graph DSL as a starting point
+- Scope: Cloudflare-native architecture and the typed graph DSL
 
 ## Summary
 
 Clankwerk is a code-first, self-hosted-on-your-Cloudflare-account platform for agents and durable workflows. A developer scaffolds an independent project with `bunx @leostera/clankwerk new`, defines Think agents in `agents/*.ts` and workflow graphs in `workflows/*.ts`, and deploys with `bunx @leostera/clankwerk deploy`. The deploy command delegates to Cloudflare CLI (`cf deploy`). The deployed application serves an Access-protected operational dashboard at a chosen hostname and exposes separately authenticated public triggers on a dedicated hostname. Cloudflare Workers and Durable Objects are the runtime; local development uses Cloudflare's local runtime/Miniflare. There is no portable runtime or local SQLite backend.
 
-This RFD describes the intended product, not the current repository's implementation. In particular, RFD0001's scheduler, adapters, persistence, and package layout are not compatibility requirements.
+This RFD describes the intended product. The initial implementation is summarized below; features not explicitly marked implemented remain design goals.
 
 ## Motivation
 
-The existing LibClank foundation proves that the graph DSL can describe typed workflows and render useful operational topology. But a portable scheduler, separate local and hosted databases, and manually assembled runtime/dashboard deployments make it harder to create an agent system that is useful immediately. Clankwerk should make the common path one project, one Cloudflare account, one deployment command, and an operational UI at the user's own domain.
+The typed graph DSL can describe workflows and render useful operational topology. But a portable scheduler, separate local and hosted databases, and manually assembled runtime/dashboard deployments make it harder to create an agent system that is useful immediately. Clankwerk should make the common path one project, one Cloudflare account, one deployment command, and an operational UI at the user's own domain.
 
 Use cases:
 
@@ -65,7 +65,7 @@ export default Clankwerk.defineAgent({
 
 A definition is not an instance: `researcher` may have multiple independently addressable, stateful Think/Durable Object instances. The dashboard distinguishes agent definitions from instances and their activity. Clankwerk should use Cloudflare's Think harness rather than implement its own agent loop.
 
-Workflow definitions live in `workflows/*.ts` and use the typed graph DSL retained from LibClank. Node implementations remain in deployed code; durable state stores stable node/call-site IDs, inputs, attempt facts, outputs, and events—not closures. The authoring experience should support composition, branches, and dynamic fan-out where the retained DSL supports them. This RFD does not promise that every legacy execution feature survives unchanged.
+Workflow definitions live in `workflows/*.ts` and use Clankwerk's typed graph DSL. Node implementations remain in deployed code; durable state stores stable node/call-site IDs, inputs, attempt facts, outputs, and events—not closures. The authoring experience should support composition, branches, and dynamic fan-out where the retained DSL supports them. This RFD does not promise that every legacy execution feature survives unchanged.
 
 The build registers source-defined agents, workflows, and triggers into a deployment manifest so the dashboard shows what this version of the project actually contains. Registration/discovery rules (default exports, named exports, explicit registry, or generated imports) must be made deterministic before implementation.
 
@@ -134,7 +134,7 @@ The public trigger hostname is routed to the same project Worker but is not cove
 
 ### Relationship to existing code
 
-Keep the useful typed graph authoring concepts and topology identity tests from `packages/core` as an implementation input. Rebuild the persistence and execution boundary for Cloudflare. Remove or retire portable scheduler/database interfaces, the local SQLite adapter, and assumptions that the dashboard and scheduler are independently deployed products. Rename the user-facing project and package to `@leostera/clankwerk`; no migration compatibility with existing LibClank persisted runs or packages is promised. RFD0001 remains historical context, not a specification for the new runtime.
+The graph authoring DSL and manifest compiler live in `@leostera/clankwerk`. Persistence and execution use Cloudflare primitives; there is no portable scheduler/database abstraction or local SQLite adapter. No compatibility with pre-Clankwerk persisted runs or packages is promised.
 
 ## Drawbacks
 
@@ -158,7 +158,7 @@ Keep the useful typed graph authoring concepts and topology identity tests from 
 
 ## Prior art
 
-RFD0001 provides the graph DSL, topology identity rules, and lessons from durable run execution. Cloudflare Workers provide deployment and HTTP handling; Durable Objects provide coordinated per-run and per-agent-instance state; Think provides the agent harness; Access protects the admin surface; Miniflare supplies local Cloudflare runtime emulation. Clankwerk replaces, rather than wraps, RFD0001's portable scheduler design.
+Typed graph schedulers inform topology identity and durable run execution. Cloudflare Workers provide deployment and HTTP handling; Durable Objects provide coordinated per-run and per-agent-instance state; Think provides the agent harness; Access protects the admin surface; Miniflare supplies local Cloudflare runtime emulation.
 
 ## Unresolved questions
 
@@ -183,13 +183,13 @@ RFD0001 provides the graph DSL, topology identity rules, and lessons from durabl
 
 ## Initial implementation checkpoint
 
-`packages/clankwerk` now contains the migrated graph DSL and manifest compiler under `@leostera/clankwerk`, a `new`/`deploy` CLI, and a Cloudflare project template. The template builds with `cf` and provides a Think-backed agent class, a per-run DO coordinator for static graph steps, a D1 run/audit query projection, and host-separated HTTP routing. The scaffold takes one `--domain` and derives `triggers.<domain>`. `clankwerk setup` can provision a self-hosted Access application using an existing reusable allow policy, while the generated deployment script verifies protection and delegates to `cf deploy`. No public triggers are enabled by default.
+The root `@leostera/clankwerk` package contains the migrated graph DSL and manifest compiler, a `new`/`deploy` CLI, and a Cloudflare project template. The template builds with `cf` and provides a Think-backed agent class, a per-run DO coordinator for static graph steps, a D1 run/audit query projection, and host-separated HTTP routing. The scaffold takes one `--domain` and derives `triggers.<domain>`. `clankwerk setup` can provision a self-hosted Access application using an existing reusable allow policy, while the generated deployment script verifies protection and delegates to `cf deploy`. No public triggers are enabled by default.
 
-This is a foundation, **not completion of this RFD**: account/Access provisioning, a full operational dashboard, searchable run and agent-instance indexes, audited and signed public triggers, dynamic fan-out, robust in-flight execution fencing, and historical definition compatibility remain to be implemented. The old code remains in the repository for reference but is not depended on by `@leostera/clankwerk`.
+This is a foundation, **not completion of this RFD**: a full operational dashboard, agent-instance indexing, audited and signed public triggers, dynamic fan-out, robust in-flight execution fencing, and historical definition compatibility remain to be implemented. The legacy runtime and its examples have been removed from the repository.
 
 ## Rollout and acceptance criteria
 
-1. Scaffold a new project with two chosen hostnames and an explicit Access setup path; no default-public admin endpoint.
+1. Scaffold a new project with one chosen dashboard hostname, a derived trigger hostname, and an explicit Access setup path; no default-public admin endpoint.
 2. Run it locally with Cloudflare's Worker/DO runtime without starting the old local SQLite server.
 3. Register one Think agent definition, create two isolated instances, and inspect both in the dashboard.
 4. Register a graph workflow, start two concurrent runs, and recover in-progress work without re-running completed steps incorrectly.

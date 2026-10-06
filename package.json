@@ -1,38 +1,35 @@
 {
-  "name": "clankwerk",
-  "private": true,
+  "name": "@leostera/clankwerk",
+  "version": "0.1.0",
   "type": "module",
-  "packageManager": "bun@1.3.11",
-  "workspaces": [
-    "packages/*",
-    "apps/*"
+  "packageManager": "bun@1.4.2",
+  "bin": {
+    "clankwerk": "./src/cli.mjs"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src/cli.mjs",
+    "src/index.ts",
+    "src/graph",
+    "template"
   ],
   "scripts": {
-    "build": "bun run --filter '*' build",
-    "typecheck": "bun run --filter '*' typecheck",
-    "test": "bun run build && vitest run && bun run --filter @libclank/app-scheduler test && bun run --filter @leostera/clankwerk test",
-    "example:url-summary": "bun run build && bun examples/local-url-summary/server.ts",
-    "example:link-digest": "bun run build && bun examples/link-digest/server.ts",
-    "example:parallel-analyses": "bun run build && bun examples/parallel-analyses/server.ts",
+    "build": "bun run typecheck",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "git config core.hooksPath .githooks"
   },
+  "dependencies": {
+    "effect": "4.0.0-rc.116"
+  },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.22.0",
-    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^22.10.2",
     "prettier": "^3.9.8",
     "typescript": "^5.7.2",
     "vitest": "^4.1.0"
-  },
-  "dependencies": {
-    "@libclank/agent": "workspace:*",
-    "@libclank/cloudflare": "workspace:*",
-    "@libclank/core": "workspace:*",
-    "@libclank/local": "workspace:*",
-    "@libclank/scheduler": "workspace:*",
-    "@libclank/ui": "workspace:*",
-    "effect": "4.0.0-rc.116"
   }
 }

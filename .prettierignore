@@ -1,7 +1,4 @@
 node_modules
+.cloudflare
 dist
-.clank
-link-digests
-parallel-analysis-artifacts
-summaries
 bun.lock

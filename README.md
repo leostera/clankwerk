@@ -1,31 +1,38 @@
 # Clankwerk
 
-Cloudflare-native, code-first agents and workflow graphs. Each scaffolded project belongs to its own Cloudflare account and deploys with Cloudflare CLI (`cf`). See [RFD0002](docs/rfds/RFD0002-clankwerk-cloudflare-native.md) for the target architecture.
+Code-defined agents and durable workflow graphs on Cloudflare. Scaffold a project in **your own Cloudflare account**, protect its dashboard with Cloudflare Access, and deploy it with `cf`. Clankwerk uses Workers, Durable Objects, D1, and Think; it does not use Cloudflare Workflows.
 
-## Starter (in progress)
+> **Early starter:** `@leostera/clankwerk` is not published yet. Public triggers, the operational dashboard, and workflow recovery guarantees are still in development. Do not use this starter for production workloads.
 
-```bash
-bun install
-bun packages/clankwerk/src/cli.mjs new my-clankwerk \
+## Create a project
+
+Once the package is published:
+
+```sh
+bunx @leostera/clankwerk new my-clankwerk \
   --domain myclankwerk.example.com \
   --access-policy <existing-reusable-allow-policy-uuid>
 cd my-clankwerk
 bun install
-bun run dev
-# Provisions and verifies Access before the first deploy:
-bun run setup
-# Checks Access, then delegates to cf deploy:
-bun run deploy
-# Or run cf deploy directly once Access is configured.
+cf auth login
+bun run setup   # provision or verify the Access application
+bun run dev     # local Cloudflare runtime
+bun run deploy  # verify Access, then cf deploy
 ```
 
-Once published, use `bunx @leostera/clankwerk new` / `bunx @leostera/clankwerk deploy`. The repository also includes [`examples/clankwerk-live/`](examples/clankwerk-live/) configured for `clankwerk.leostera.dev`; its Worker, Access application, and D1 index are deployed; an authenticated `hello` run completed successfully in a live smoke test. The starter contains a Think-backed agent definition, a typed graph workflow, a per-run Durable Object coordinator for static steps, and separate admin/trigger host routing. No public webhook routes are enabled by default. Deployment checks for an existing Access application before delegating to `cf deploy`. D1 indexes runs and events for the operational API. The generated `README.md` documents its current limits; **it is not yet production-complete**.
+`new` derives `triggers.myclankwerk.example.com` from the dashboard domain. You need control of the domain in your Cloudflare account and an existing reusable Access **allow** policy for authorized identities; Clankwerk does not create users or identity providers. `cf` requires Node 22.18+ (Node 24 recommended). After Access has been configured, `cf deploy` also works directly, but skips the generated deployment script's protection check.
 
-The graph DSL and manifest builder now live directly in `packages/clankwerk`, with no `@libclank/*` dependency. Other legacy packages, examples, and manual pages remain for reference during the rewrite; they are not Clankwerk's target architecture.
+The generated project contains a Think-backed agent definition, a typed graph workflow, and a per-run Durable Object coordinator. The dashboard hostname serves admin UI/API behind Access. The separate public trigger hostname currently returns 404 for all requests: **no webhook is enabled by default**. Runs and audit events are projected into D1; agent-instance views, signed triggers, dynamic fan-out, and stronger recovery/idempotency guarantees are not implemented yet. See the generated project's README for the exact limitations.
 
-## Checks
+## Try the repository checkout
 
-```bash
+The independent [live example](examples/clankwerk-live/README.md) runs against this checkout's package source without requiring a publish. It is configured for `clankwerk.leostera.dev`; use your own scaffolded project for other domains/accounts. To work on the package:
+
+```sh
+bun install
 bun run typecheck
 bun run test
+bun run format:check
 ```
+
+The publishable `@leostera/clankwerk` package lives at the repository root (`src/` and `template/`). The [architecture RFD](docs/rfds/RFD0002-clankwerk-cloudflare-native.md) separates the intended product from the current starter.
