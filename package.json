@@ -1,38 +1,21 @@
 {
-  "name": "@leostera/clankwerk",
-  "version": "0.1.2",
+  "name": "clankwerk-monorepo",
+  "private": true,
   "type": "module",
   "packageManager": "bun@1.4.2",
-  "publishConfig": {
-    "access": "public"
-  },
-  "bin": {
-    "clankwerk": "src/cli.mjs"
-  },
-  "exports": {
-    ".": "./src/index.ts"
-  },
-  "files": [
-    "src/cli.mjs",
-    "src/index.ts",
-    "src/graph",
-    "template"
+  "workspaces": [
+    "packages/*",
+    "service"
   ],
   "scripts": {
-    "build": "bun run typecheck",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run",
+    "build": "bun run --cwd packages/clankwerk build && bun run --cwd service build",
+    "typecheck": "bun run --cwd packages/clankwerk typecheck && bun run --cwd service typecheck",
+    "test": "bun run --cwd packages/clankwerk test && bun run --cwd service test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "git config core.hooksPath .githooks"
   },
-  "dependencies": {
-    "effect": "4.0.0-rc.116"
-  },
   "devDependencies": {
-    "@types/node": "^22.10.2",
-    "prettier": "^3.9.8",
-    "typescript": "^5.7.2",
-    "vitest": "^4.1.0"
+    "prettier": "^3.9.8"
   }
 }

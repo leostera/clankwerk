@@ -48,9 +48,11 @@ Both examples are included in scaffolded projects. See the [getting-started guid
 ## User guide
 
 - [Getting started](docs/getting-started.md) — prerequisites, local example, scaffolding, and deployment
-- [Generated project guide](template/README.md) — Access setup, dashboard views, API routes, and current limitations
+- [Generated project guide](packages/clankwerk/template/README.md) — Access setup, dashboard views, API routes, and current limitations
+- [Optional Codex connection](docs/codex-connector.md) — self-hosted sign-in, secure credentials, and instance integration
+- [Clankwerk Connect service](service/README.md) — private Worker package for the hosted GitHub App; not included in the npm package. Instances opt into its GitHub card with `connections: ["github"]` and implement the protected `/api/connections/github` and `/api/connectors/github/complete` endpoints.
 
-**This is an early starter, not production-ready.** Its React dashboard is read-only for project data (browser-local appearance is configurable); the protected run API records accepted starts, while public webhook triggers are not enabled. See the guides before deploying.
+**This is an early starter, not production-ready.** Its React dashboard is read-only for project data by default (browser-local appearance is configurable); instances may opt into the Codex connection settings card. the protected run API records accepted starts, while public webhook triggers are not enabled. See the guides before deploying.
 
 ## Try the example
 
@@ -73,4 +75,4 @@ bun run format:check
 
 ## Contributor documentation
 
-The publishable `@leostera/clankwerk` package is at the repository root (`src/` and `template/`), not in a workspace. The intended architecture and unfinished work are in [RFD0002](docs/rfds/RFD0002-clankwerk-cloudflare-native.md).
+This is a Bun workspace. The publishable `@leostera/clankwerk` package lives in `packages/clankwerk/` (`src/` and `template/`); `service/` is the private Clankwerk Connect Worker and is never published. The live example in `examples/clankwerk-live/` keeps its own install and tests the package source through local aliases. Run workspace checks from the repository root, package publication from `packages/clankwerk/`, and Worker deployment from `service/`. The intended architecture and unfinished work are in [RFD0002](docs/rfds/RFD0002-clankwerk-cloudflare-native.md).

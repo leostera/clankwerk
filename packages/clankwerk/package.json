@@ -1,0 +1,85 @@
+{
+  "name": "@leostera/clankwerk",
+  "version": "0.1.6",
+  "type": "module",
+  "packageManager": "bun@1.4.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "clankwerk": "src/cli.mjs",
+    "clankwerk-codex-connect": "src/connectors/connect-codex.mjs"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./runtime": "./src/runtime/index.ts",
+    "./dashboard": "./template/dashboard/main.tsx",
+    "./connectors/codex": "./src/connectors/codex.ts",
+    "./connectors/codex-settings": "./src/connectors/codex-settings.ts",
+    "./connectors/codex-model-settings": "./src/connectors/codex-model-settings.ts",
+    "./connectors/codex-model": "./src/connectors/codex-model.ts",
+    "./connectors/github-authorization": "./src/connectors/github-authorization.ts",
+    "./connectors/github-app": "./src/connectors/github-app.ts",
+    "./connectors/github-trigger": "./src/connectors/github-trigger.ts",
+    "./connectors/github-pull": "./src/connectors/github-pull.ts",
+    "./connectors/github-publish": "./src/connectors/github-publish.ts",
+    "./connectors/github-branch-sync": "./src/connectors/github-branch-sync.ts",
+    "./connectors/github-repositories": "./src/connectors/github-repositories.ts",
+    "./connectors/github-git-read": "./src/connectors/github-git-read.ts",
+    "./connectors/github-connection": "./src/connectors/github-connection.ts",
+    "./connectors/coder-workspace": "./src/connectors/coder-workspace.ts",
+    "./connectors/github-archive": "./src/connectors/github-archive.ts",
+    "./connectors/review-verdict": "./src/connectors/review-verdict.ts"
+  },
+  "files": [
+    "src/cli.mjs",
+    "src/index.ts",
+    "src/graph",
+    "src/runtime",
+    "src/connectors",
+    "template"
+  ],
+  "scripts": {
+    "build": "bun run typecheck",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^4.0.84",
+    "@cloudflare/sandbox": "1.0.0",
+    "@octokit/rest": "22.0.1",
+    "@xyflow/react": "^12",
+    "effect": "4.0.0-rc.116",
+    "jose": "^6.2.12"
+  },
+  "peerDependencies": {
+    "lucide-react": "^1.52.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "peerDependenciesMeta": {
+    "lucide-react": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261006.1",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "lucide-react": "^1.52.0",
+    "prettier": "^3.9.8",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.0"
+  }
+}

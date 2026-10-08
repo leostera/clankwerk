@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "jsx": "react-jsx",
+    "types": ["@cloudflare/workers-types"]
+  },
+  "include": [
+    "dashboard",
+    "worker",
+    "agents",
+    "workflows",
+    "triggers",
+    "cloudflare.config.ts",
+    "vite.config.ts",
+    ".cloudflare/types"
+  ]
+}

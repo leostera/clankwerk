@@ -24,7 +24,7 @@ The dashboard is served on the Access-protected admin hostname. A separate publi
 
 ## Capabilities and Constraints
 
-Read-only overview and scoped search of loaded agents, workflows, protected entrypoints, and latest 50 indexed runs; source-manifest workflow graph, run steps/events, actual workflow-mediated agent calls, and accepted API-start history. The sidebar may collapse on desktop. Settings stores Light/Dark/Auto appearance in the current browser and shows read-only project details; it does not mutate runtime configuration. Only existing data may be shown as facts. Direct agent sessions, unmediated calls, rejected trigger requests, public webhook execution, and OpenTelemetry spans are not indexed; show honest limits. Access must protect the dashboard's assets and API on the admin hostname. The UI must remain useful with zero runs or audit events.
+Read-only overview and scoped search of loaded agents, workflows, protected entrypoints, and latest 50 indexed runs; source-manifest workflow graph, run steps/events, actual workflow-mediated agent calls, and accepted API-start history. The sidebar may collapse on desktop. Settings stores Light/Dark/Auto appearance in the current browser and shows read-only project details. An instance may opt into the Codex connection card and model selection: Settings chooses a default from the connected account's live catalog and declared agent pages offer per-agent overrides. Saves validate against the server-side catalog and never expose credentials; ordinary scaffold projects do not expose the connector or selectors. Only existing data may be shown as facts. Direct agent sessions, unmediated calls, rejected trigger requests, public webhook execution, and OpenTelemetry spans are not indexed; show honest limits. Access must protect the dashboard's assets and API on the admin hostname. The UI must remain useful with zero runs or audit events.
 
 ## Brand Commitments
 
@@ -32,7 +32,7 @@ The user named Cloudflare's dashboard (`dash.cloudflare.dev`, as supplied) as a 
 
 ## Evidence on Hand
 
-`template/worker/main.ts`, `template/worker/index.ts`, `examples/clankwerk-live/`, and `docs/rfds/RFD0002-clankwerk-cloudflare-native.md` show currently available data and boundaries. The API entrypoint records accepted starts and mediated agent calls; no public trigger delivery or complete agent-instance index exists.
+`packages/clankwerk/template/worker/main.ts`, `packages/clankwerk/template/worker/index.ts`, `examples/clankwerk-live/`, and `docs/rfds/RFD0002-clankwerk-cloudflare-native.md` show currently available data and boundaries. The API entrypoint records accepted starts and mediated agent calls; no public trigger delivery or complete agent-instance index exists.
 
 ## Product Principles
 

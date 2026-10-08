@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "cf dev",
     "build": "cf build",
-    "setup": "bun ../../src/cli.mjs setup",
-    "deploy": "bun ../../src/cli.mjs check && cf deploy",
+    "setup": "bun ../../packages/clankwerk/src/cli.mjs setup",
+    "deploy": "bun ../../packages/clankwerk/src/cli.mjs check && cf deploy",
     "typecheck": "cf build && tsc --noEmit"
   },
   "dependencies": {

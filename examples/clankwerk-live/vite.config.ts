@@ -6,6 +6,6 @@ import { fileURLToPath } from "node:url"
 export default defineConfig({
   plugins: [cloudflare()],
   resolve: {
-    alias: { "@leostera/clankwerk": fileURLToPath(new URL("../../src/index.ts", import.meta.url)) },
+    alias: { "@leostera/clankwerk": fileURLToPath(new URL("../../packages/clankwerk/src/index.ts", import.meta.url)) },
   },
 })

@@ -57,4 +57,4 @@ The dashboard lives at `myclankwerk.example.com` and the trigger hostname is der
 - Start `hello` by POSTing to `/api/workflows/hello/runs` on the **admin** hostname. Follow the run in the dashboard or poll `/api/runs/<id>`; `/api/runs` and `/api/audit` expose D1-backed lists.
 - The separate **public trigger** hostname returns 404 for every request. Do not route unauthenticated webhooks to the admin API or assume a signature verifier exists yet.
 
-The generated [project README](../template/README.md) documents the current operational limits. The [architecture RFD](rfds/RFD0002-clankwerk-cloudflare-native.md) describes the intended product, not a promise that every feature is implemented.
+The generated [project README](../packages/clankwerk/template/README.md) documents the current operational limits. The [architecture RFD](rfds/RFD0002-clankwerk-cloudflare-native.md) describes the intended product, not a promise that every feature is implemented.

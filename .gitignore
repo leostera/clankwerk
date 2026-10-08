@@ -1,4 +1,6 @@
 node_modules/
+# The Bun workspace lockfile lives at the repository root.
+service/bun.lock
 dist/
 .cloudflare/
 .dev.vars*

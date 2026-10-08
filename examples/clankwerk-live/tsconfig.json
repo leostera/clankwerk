@@ -11,7 +11,7 @@
     "types": ["@cloudflare/workers-types"],
     "baseUrl": ".",
     "paths": {
-      "@leostera/clankwerk": ["../../src/index.ts"]
+      "@leostera/clankwerk": ["../../packages/clankwerk/src/index.ts"]
     }
   },
   "include": [
