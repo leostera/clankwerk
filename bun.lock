@@ -10,7 +10,7 @@
     },
     "packages/clankwerk": {
       "name": "@leostera/clankwerk",
-      "version": "0.1.8",
+      "version": "0.1.9",
       "bin": {
         "clankwerk": "src/cli.mjs",
         "clankwerk-codex-connect": "src/connectors/connect-codex.mjs",

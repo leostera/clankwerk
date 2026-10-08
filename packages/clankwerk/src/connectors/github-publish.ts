@@ -151,6 +151,11 @@ export async function publishDraft(
     per_page: 10,
   })
   const existingPull = pulls.find((item) => item.head.sha === commitSha && item.base.ref === base)
+  if (
+    existingPull &&
+    (existingPull.state !== "open" || !existingPull.draft || existingPull.head.repo?.full_name !== `${owner}/${repo}`)
+  )
+    throw new Error("Existing issue pull request is not an open draft from this repository")
   const pull =
     existingPull ??
     (
@@ -164,6 +169,7 @@ export async function publishDraft(
         body: `Automated draft for #${change.issue}. Independent review may request revisions.\n\nCloses #${change.issue}`,
       })
     ).data
+  if (pull.state !== "open" || pull.draft !== true) throw new Error("GitHub did not confirm an open draft PR")
   if (pull.html_url !== `https://github.com/${owner}/${repo}/pull/${pull.number}`)
     throw new Error("Invalid draft PR response")
   return { branch, commit: commitSha, url: pull.html_url, number: pull.number }

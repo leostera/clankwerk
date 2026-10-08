@@ -48,7 +48,10 @@ test("Octokit publishes only an issue branch and draft PR from the exact base", 
         if (path === "/git/refs") return Response.json({ ref: "refs/heads/r4/issue-2" }, { status: 201 })
         if (path === "/pulls" && method === "GET") return Response.json([])
         if (path === "/pulls" && method === "POST")
-          return Response.json({ number: 3, html_url: "https://github.com/leostera/r4/pull/3" }, { status: 201 })
+          return Response.json(
+            { number: 3, html_url: "https://github.com/leostera/r4/pull/3", state: "open", draft: true },
+            { status: 201 },
+          )
         throw new Error(`Unexpected GitHub path ${path}`)
       },
     },
@@ -95,7 +98,9 @@ test("retries after branch creation without replacing the existing commit or dup
           return pullExists
             ? Response.json([
                 {
-                  head: { sha: commit },
+                  head: { sha: commit, repo: { full_name: "leostera/r4" } },
+                  state: "open",
+                  draft: true,
                   base: { ref: "main" },
                   number: 3,
                   html_url: "https://github.com/leostera/r4/pull/3",
@@ -105,7 +110,10 @@ test("retries after branch creation without replacing the existing commit or dup
         if (path === "/pulls" && method === "POST") {
           pullWrites++
           pullExists = true
-          return Response.json({ number: 3, html_url: "https://github.com/leostera/r4/pull/3" }, { status: 201 })
+          return Response.json(
+            { number: 3, html_url: "https://github.com/leostera/r4/pull/3", state: "open", draft: true },
+            { status: 201 },
+          )
         }
         throw new Error(`Unexpected GitHub path ${path}`)
       },
@@ -115,6 +123,36 @@ test("retries after branch creation without replacing the existing commit or dup
   const retry = await publishDraft(input, octokit)
   expect(retry).toEqual(first)
   expect([commitWrites, refWrites, pullWrites]).toEqual([1, 1, 1])
+})
+
+test("does not reuse a draft after a human closes it", async () => {
+  const client = new Octokit({
+    auth: "fake-token",
+    request: {
+      fetch: async (url: string) => {
+        const path = decodeURIComponent(new URL(url).pathname.replace("/repos/leostera/r4", ""))
+        if (path === "/git/ref/heads/main") return Response.json({ object: { sha: base } })
+        if (path === "/git/ref/heads/r4/issue-2") return Response.json({ object: { sha: commit } })
+        if (path === `/git/commits/${base}`) return Response.json({ tree: { sha: tree } })
+        if (path === `/git/commits/${commit}`)
+          return Response.json({ tree: { sha: tree }, parents: [{ sha: base }], message: `Work on #2: ${input.title}` })
+        if (path === "/git/blobs") return Response.json({ sha: blob })
+        if (path === "/git/trees") return Response.json({ sha: tree })
+        if (path === "/pulls")
+          return Response.json([
+            {
+              head: { sha: commit, repo: { full_name: "leostera/r4" } },
+              base: { ref: "main" },
+              state: "closed",
+              draft: true,
+              number: 3,
+            },
+          ])
+        throw new Error(`Unexpected GitHub path ${path}`)
+      },
+    },
+  })
+  await expect(publishDraft(input, client)).rejects.toThrow("not an open draft")
 })
 
 test("revision advances only its expected draft head and can recover a lost acknowledgement", async () => {

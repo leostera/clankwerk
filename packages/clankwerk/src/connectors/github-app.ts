@@ -7,7 +7,7 @@ type AppOptions = {
   privateKey: string
   owner: string
   repo: string
-  permissions: { issues: "write"; contents?: "read" | "write" }
+  permissions: { issues: "write"; contents?: "read" | "write"; pull_requests?: "write" }
   fetch?: typeof fetch
 }
 
@@ -72,7 +72,9 @@ export async function issueInstallationToken(
     !Array.isArray(issued.repositories) ||
     issued.repositories.length !== 1 ||
     (issued.repositories[0] as { full_name?: unknown }).full_name !== `${owner}/${repo}` ||
-    (issued.permissions as Record<string, unknown> | undefined)?.issues !== "write"
+    Object.entries(permissions).some(
+      ([name, level]) => (issued.permissions as Record<string, unknown> | undefined)?.[name] !== level,
+    )
   )
     throw new Error("GitHub did not issue the requested repository-scoped installation token")
   return { token: issued.token, expiresAt: Date.parse(issued.expires_at), bot: `${installation.app_slug}[bot]` }

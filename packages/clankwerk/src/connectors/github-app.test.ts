@@ -32,6 +32,28 @@ describe("GitHub App installation token", () => {
     expect(result).toMatchObject({ token: "ghs_fake-token", bot: "leo-r4[bot]" })
     expect(request).toHaveBeenCalledTimes(2)
   })
+  it("requires the granted publication permissions when minting a draft-capable token", async () => {
+    const request = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/installation")) return Response.json({ id: 123, app_id: 42, app_slug: "leo-r4" })
+      expect(JSON.parse(init!.body as string)).toMatchObject({
+        repositories: ["r4"],
+        permissions: { issues: "write", contents: "write", pull_requests: "write" },
+      })
+      return Response.json({
+        token: "ghs_fake-token",
+        expires_at: new Date(Date.now() + 3_600_000).toISOString(),
+        repositories: [{ full_name: "leostera/r4" }],
+        permissions: { issues: "write", contents: "write" },
+      })
+    })
+    await expect(
+      issueInstallationToken({
+        ...base,
+        permissions: { issues: "write", contents: "write", pull_requests: "write" },
+        fetch: request as typeof fetch,
+      }),
+    ).rejects.toThrow("repository-scoped")
+  })
   it("fails closed when a token covers another repository", async () => {
     const request = vi.fn(async (input: RequestInfo | URL) =>
       String(input).endsWith("/installation")
