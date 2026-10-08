@@ -33,6 +33,8 @@ export interface NodeDefinition {
   readonly retry: { readonly maxAttempts: number; readonly backoffMs: number }
   readonly kind?: "static" | "fanout-item" | "fanout" | "trigger-selector"
   readonly fanoutTemplate?: NodeId
+  /** Static branch names for mapping join inputs; dynamic fanout items use fanoutTemplate. */
+  readonly branchKeys?: readonly string[]
   readonly triggerIds?: readonly TriggerId[]
 }
 
@@ -270,9 +272,8 @@ export class Node<Input, Output> {
     )
   }
 
-  fanout<Branches extends Record<string, Node<unknown, unknown>>>(
-    branches: Branches,
-  ): Node<Input, FanoutOutputs<Branches>> {
+  // Nodes are invariant in their input/output schemas; a branch has its own concrete result type.
+  fanout<Branches extends Record<string, Node<Output, any>>>(branches: Branches): Node<Input, FanoutOutputs<Branches>> {
     return new Node<Input, FanoutOutputs<Branches>>(
       Id.childNode(this.id, "fanout"),
       (input, context) =>
@@ -293,6 +294,7 @@ export class Node<Input, Output> {
         id: Id.childNode(this.id, "fanout"),
         stepId: Id.childNode(this.id, "fanout"),
         dependencies: [this.id, ...Object.values(branches).map((branch) => branch.id)],
+        branchKeys: Object.keys(branches),
       },
       [...this.definitions, ...Object.values(branches).flatMap((branch) => branch.definitions)],
       [...this.implementations, ...Object.values(branches).flatMap((branch) => branch.implementations)],
@@ -302,7 +304,9 @@ export class Node<Input, Output> {
 
 export type NodeInput<N> = N extends Node<infer Input, unknown> ? Input : never
 export type NodeOutput<N> = N extends Node<unknown, infer Output> ? Output : never
-export type FanoutOutputs<B extends Record<string, Node<unknown, unknown>>> = { [K in keyof B]: NodeOutput<B[K]> }
+export type FanoutOutputs<B extends Record<string, Node<any, any>>> = {
+  [K in keyof B]: B[K] extends Node<any, infer Result> ? Result : never
+}
 export type Trigger<Output> = Node<void, Output>
 export type EffectNode<Input> = Node<Input, void>
 

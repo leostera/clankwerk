@@ -19,7 +19,12 @@ const client = new Octokit({
       if (url.includes("/user/installations/99/repositories?"))
         return Response.json({ total_count: 1, repositories: [{ full_name: "leostera/r4", private: true }] })
       if (url.endsWith("/repos/leostera/r4")) return Response.json({ full_name: "leostera/r4", default_branch: "main" })
-      if (url.endsWith("/commits/main")) return Response.json({ sha })
+      if (
+        url.endsWith("/commits/main") ||
+        url.endsWith(`/commits/${sha}`) ||
+        url.endsWith(`/commits/${"f".repeat(40)}`)
+      )
+        return Response.json({ sha })
       throw new Error("Unexpected GitHub REST request")
     },
   },
@@ -58,6 +63,14 @@ test("accepts a token verified for exactly this repository and rejects another s
   await expect(fetchScoped("leostera", "r4", client, "ghs_fake", request, "leostera/other")).rejects.toThrow(
     "not selected",
   )
+})
+
+test("a review archive is pinned to its exact PR head rather than current main", async () => {
+  const result = await fetchScoped("leostera", "r4", client, "ghs_fake", request, "leostera/r4", sha)
+  expect(result.sha).toBe(sha)
+  await expect(
+    fetchScoped("leostera", "r4", client, "ghs_fake", request, "leostera/r4", "f".repeat(40)),
+  ).rejects.toThrow("Invalid or moved repository commit")
 })
 
 test("rejects an oversized archive before the Sandbox sees it", async () => {

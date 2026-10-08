@@ -13,13 +13,15 @@ export async function fetchSelectedSnapshot(
   token: string,
   request: Requester = fetch,
   scopedRepository?: string,
+  exactCommit?: string,
 ): Promise<{ repo: string; branch: string; sha: string; archive: ArrayBuffer }> {
   if (
     !/^[a-zA-Z0-9-]{1,39}$/.test(owner) ||
     !/^[a-zA-Z0-9._-]{1,100}$/.test(repo) ||
     repo === "." ||
     repo === ".." ||
-    !token
+    !token ||
+    (exactCommit !== undefined && !/^[a-f0-9]{40}$/.test(exactCommit))
   )
     throw new Error("Expected an owner, repository name and authenticated connection")
   const fullName = `${owner}/${repo}`
@@ -48,8 +50,9 @@ export async function fetchSelectedSnapshot(
   )
     throw new Error("Invalid repository metadata")
   const branch = details.default_branch
-  const { sha } = (await octokit.rest.repos.getCommit({ owner, repo, ref: branch })).data
-  if (!sha || !/^[0-9a-f]{40}$/.test(sha)) throw new Error("Invalid repository HEAD")
+  const { sha } = (await octokit.rest.repos.getCommit({ owner, repo, ref: exactCommit ?? branch })).data
+  if (!sha || !/^[0-9a-f]{40}$/.test(sha) || (exactCommit && sha !== exactCommit))
+    throw new Error("Invalid or moved repository commit")
   // Keep the archive's redirect and byte stream explicit: Octokit's JSON-oriented response
   // handling would buffer an unbounded private archive and follow a signed codeload URL.
   const archiveURL = `${api}/repos/${fullName}/tarball/${sha}`

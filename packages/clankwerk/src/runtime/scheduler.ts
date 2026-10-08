@@ -273,7 +273,7 @@ export class WorkflowScheduler {
               ? current.output
               : Object.fromEntries(
                   upstream.map((candidate) => [
-                    candidate.from,
+                    candidate.as ?? candidate.from,
                     latest.steps.find((item) => item.id === candidate.from)?.output,
                   ]),
                 )

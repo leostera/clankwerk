@@ -17,6 +17,8 @@ export interface WorkflowManifestEdge {
   readonly from: string
   readonly to: string
   readonly kind: "dependency" | "trigger"
+  /** Static fan-out output name when multiple branch results join. */
+  readonly as?: string
 }
 
 export interface WorkflowManifestSource {
@@ -41,15 +43,18 @@ function isComposition(id: string, task?: NodeDefinition): boolean {
 function compositionEdges(tasks: readonly NodeDefinition[]): WorkflowManifestEdge[] {
   const byId = new Map<string, NodeDefinition>()
   for (const task of tasks) if (!byId.has(task.id)) byId.set(task.id, task)
-  const output = (id: string): string => {
+  const outputs = (id: string): string[] => {
     const task = byId.get(id)
     if (task && /\/tap$/.test(id) && task.dependencies[1]) {
       const composedOutput = tasks.find(
         (candidate) => candidate.stepId === Id.childNode(task.stepId, Id.name(task.dependencies[1]!)),
       )
-      return composedOutput?.stepId ?? task.stepId
+      return [composedOutput?.stepId ?? task.stepId]
     }
-    return task && /\/then$/.test(id) && task.dependencies[1] ? output(task.dependencies[1]) : (task?.stepId ?? id)
+    if (task && /\/then$/.test(id) && task.dependencies[1]) return outputs(task.dependencies[1])
+    // A static fan-out has no executable join node: its outputs are the branches.
+    if (task && /\/fanout$/.test(id) && task.kind !== "fanout") return task.dependencies.slice(1).flatMap(outputs)
+    return [task?.stepId ?? id]
   }
   const input = (id: string): string => {
     const task = byId.get(id)
@@ -64,20 +69,36 @@ function compositionEdges(tasks: readonly NodeDefinition[]): WorkflowManifestEdg
     )
   }
   return tasks.flatMap((task) => {
-    if ((task.id.endsWith("/then") || task.id.endsWith("/tap")) && task.dependencies[0] && task.dependencies[1])
-      return [
-        {
-          from: output(task.dependencies[0]),
-          to: task.id.endsWith("/tap") ? tapOutput(task) : input(task.dependencies[1]),
-          kind: "dependency" as const,
-        },
-      ]
+    if ((task.id.endsWith("/then") || task.id.endsWith("/tap")) && task.dependencies[0] && task.dependencies[1]) {
+      const parent = byId.get(task.dependencies[0])
+      if (task.id.endsWith("/then") && parent?.id.endsWith("/fanout") && parent.branchKeys) {
+        if (parent.branchKeys.length !== parent.dependencies.length - 1)
+          throw new Error("Invalid static fan-out branch keys")
+        return parent.dependencies.slice(1).flatMap((branch, index) =>
+          outputs(branch).map((from) => ({
+            from,
+            to: input(task.dependencies[1]!),
+            kind: "dependency" as const,
+            as: parent.branchKeys![index],
+          })),
+        )
+      }
+      return outputs(task.dependencies[0]).map((from) => ({
+        from,
+        to: task.id.endsWith("/tap") ? tapOutput(task) : input(task.dependencies[1]!),
+        kind: "dependency" as const,
+      }))
+    }
     if ((task.id.endsWith("/fanout") || task.kind === "fanout") && task.dependencies[0])
       return task.kind === "fanout"
-        ? [{ from: output(task.dependencies[0]), to: task.stepId, kind: "dependency" as const }]
-        : task.dependencies
-            .slice(1)
-            .map((branch) => ({ from: output(task.dependencies[0]!), to: input(branch), kind: "dependency" as const }))
+        ? outputs(task.dependencies[0]).map((from) => ({ from, to: task.stepId, kind: "dependency" as const }))
+        : task.dependencies.slice(1).flatMap((branch) =>
+            outputs(task.dependencies[0]!).map((from) => ({
+              from,
+              to: input(branch),
+              kind: "dependency" as const,
+            })),
+          )
     return []
   })
 }

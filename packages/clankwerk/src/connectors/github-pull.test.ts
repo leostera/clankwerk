@@ -16,7 +16,7 @@ const review = {
   summary: "Fix this",
   findings: [{ path: "README.md", line: 2, comment: "Incorrect example" }],
 }
-function fixture(beforePost?: () => Promise<void>) {
+function fixture(beforePost?: () => Promise<void>, actor = "leostera") {
   const receipts = new Map<string, ReviewReceipt>()
   const store: ReviewReceiptStore = {
     get: async (key) => receipts.get(key),
@@ -63,7 +63,7 @@ function fixture(beforePost?: () => Promise<void>) {
           const result = {
             id: posted,
             body: params.body,
-            user: { login: "leostera" },
+            user: { login: actor },
             commit_id: params.commit_id,
             html_url: `https://github.com/leostera/r4/pull/5#review-${posted}`,
           }
@@ -135,6 +135,17 @@ test("review snapshot is commit-bound and bounded to a scoped repo", async () =>
   })
   env.setHead("c".repeat(40))
   await expect(readPullSnapshot(env.client, scope, 5, head)).rejects.toThrow("head moved")
+})
+
+test("GitHub App bot reviews reconcile against the bot identity, not a human login", async () => {
+  const env = fixture(undefined, "leo-r4[bot]")
+  const input = { number: 5, commit: head, actor: "leo-r4[bot]", review }
+  expect((await postCommitReview(env.client, scope, env.store, input)).reviewId).toBe(1)
+  expect(await postCommitReview(env.client, scope, env.store, input)).toMatchObject({
+    reviewId: 1,
+    alreadyPosted: true,
+  })
+  expect(env.count()).toBe(1)
 })
 
 test("posted COMMENTED reviews are idempotent and only stored review IDs drive revisions", async () => {

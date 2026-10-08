@@ -9,6 +9,7 @@ export type PullSnapshot = {
   title: string
   body: string
   baseCommit: string
+  headRepository: string | null
   patch: string
   files: string[]
   reviewable: boolean
@@ -139,6 +140,7 @@ export async function readPullSnapshot(
     title: pull.title.slice(0, 500),
     body: (pull.body ?? "").slice(0, 8_000),
     baseCommit: pull.base.sha,
+    headRepository: pull.head.repo?.full_name ?? null,
     patch,
     files: files.slice(0, 12).map((file) => file.filename),
     reviewable,
@@ -163,7 +165,7 @@ export async function postCommitReview(
   const args = target(scope, input.number)
   if (
     !sha.test(input.commit) ||
-    !/^[a-zA-Z0-9-]{1,39}$/.test(input.actor) ||
+    !/^[a-zA-Z0-9-]{1,39}(?:\[bot\])?$/.test(input.actor) ||
     (input.attempt !== undefined && (!Number.isSafeInteger(input.attempt) || input.attempt < 0 || input.attempt > 2))
   )
     throw new Error("Invalid review target")

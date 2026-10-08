@@ -65,6 +65,35 @@ describe("Clankwerk workflow scheduler", () => {
     ).rejects.toThrow("different workflow or trigger")
   })
 
+  it("runs three static branches and joins their named outputs only after all complete", async () => {
+    const received = Task.fn({ id: Id.node("snapshot"), run: (n: number) => Effect.succeed(n) })
+    const graph = Triggers.manual<number>({ id: Id.trigger("review-static") })
+      .then(received)
+      .fanout({
+        usability: Task.fn({ id: Id.node("review-usability"), run: (n: number) => Effect.succeed(n + 1) }),
+        correctness: Task.fn({ id: Id.node("review-correctness"), run: (n: number) => Effect.succeed(n + 2) }),
+        performance: Task.fn({ id: Id.node("review-performance"), run: (n: number) => Effect.succeed(n + 3) }),
+      })
+      .then(
+        Task.fn({
+          id: Id.node("review-join"),
+          run: (results: { usability: number; correctness: number; performance: number }) => Effect.succeed(results),
+        }),
+      )
+    const workflow = { id: "review-static", graph }
+    const { store } = memoryStore()
+    const scheduler = new WorkflowScheduler({ id: "review:static", store, workflows: { [workflow.id]: workflow } })
+    await scheduler.start(workflow.id, null, { id: graph.triggers[0]!.id, key: "review:static", value: 4 })
+    for (let i = 0; i < 9; i++) await scheduler.alarm()
+    const result = await scheduler.status()
+    expect(result?.status).toBe("completed")
+    expect(result?.steps.find((step) => step.id === Id.node("review-join"))?.output).toEqual({
+      usability: 5,
+      correctness: 6,
+      performance: 7,
+    })
+  })
+
   it("executes a choice of GitHub triggers as one manifested selector step", async () => {
     const issue = Triggers.webhook<{ source: "issue"; number: number }>({ id: Id.trigger("issue") })
     const feedback = Triggers.webhook<{ source: "review"; number: number }>({ id: Id.trigger("review") })
