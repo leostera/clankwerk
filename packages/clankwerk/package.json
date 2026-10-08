@@ -1,6 +1,6 @@
 {
   "name": "@leostera/clankwerk",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "type": "module",
   "packageManager": "bun@1.4.2",
   "publishConfig": {

@@ -92,6 +92,7 @@ type Manifest = {
   triggers: { id: string; kind: string }[]
 }
 type InvocationPage = { items: RunRow[]; nextCursor: string | null }
+type WorkflowSource = { path: string; source: string }
 type WorkflowMetrics = {
   window: "24h"
   total: number
@@ -865,12 +866,15 @@ function Workflows({
 }
 function WorkflowDetail({ definitions, id }: { definitions: Result<Definitions>; id: string }) {
   const cursor = new URLSearchParams(location.search).get("cursor")
-  const invocationsTab = new URLSearchParams(location.search).get("tab") === "invocations"
-  const manifest = useApi<Manifest>(invocationsTab ? null : `/api/workflows/${id}/manifest`)
-  const metrics = useApi<WorkflowMetrics>(invocationsTab ? null : `/api/workflows/${id}/metrics`)
+  const tab = new URLSearchParams(location.search).get("tab")
+  const invocationsTab = tab === "invocations"
+  const sourceTab = tab === "source"
+  const manifest = useApi<Manifest>(tab ? null : `/api/workflows/${id}/manifest`)
+  const metrics = useApi<WorkflowMetrics>(tab ? null : `/api/workflows/${id}/metrics`)
   const invocations = useApi<InvocationPage>(
     invocationsTab ? `/api/workflows/${id}/invocations${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}` : null,
   )
+  const source = useApi<WorkflowSource>(sourceTab ? `/api/workflows/${id}/source` : null)
   return (
     <>
       <Heading title={id} parent={{ href: "/workflows", label: "Workflows" }} />
@@ -879,14 +883,48 @@ function WorkflowDetail({ definitions, id }: { definitions: Result<Definitions>;
           d.workflows.includes(id) ? (
             <>
               <nav className="workflow-tabs" aria-label="Workflow views">
-                <a href={`/workflows/${id}`} aria-current={!invocationsTab ? "page" : undefined}>
+                <a href={`/workflows/${id}`} aria-current={!tab ? "page" : undefined}>
                   Overview
                 </a>
                 <a href={`/workflows/${id}?tab=invocations`} aria-current={invocationsTab ? "page" : undefined}>
                   Invocations
                 </a>
+                <a href={`/workflows/${id}?tab=source`} aria-current={sourceTab ? "page" : undefined}>
+                  Source
+                </a>
               </nav>
-              {invocationsTab ? (
+              {sourceTab ? (
+                <section className="plain-section">
+                  <div className="section-heading">
+                    <h2>Workflow source</h2>
+                    <span className="muted">Read-only · bundled with this deployment</span>
+                  </div>
+                  <Resource value={source}>
+                    {({ path, source: code }) => (
+                      <div className="source-view">
+                        <div className="source-view__path">{path}</div>
+                        <div
+                          className="source-view__scroll"
+                          role="region"
+                          aria-label={`${path} source code`}
+                          tabIndex={0}
+                        >
+                          <ol className="source-view__lines">
+                            {code
+                              .replace(/\n$/, "")
+                              .split("\n")
+                              .map((line, index) => (
+                                <li key={index}>
+                                  <code>{line || "\u00a0"}</code>
+                                </li>
+                              ))}
+                          </ol>
+                        </div>
+                      </div>
+                    )}
+                  </Resource>
+                </section>
+              ) : invocationsTab ? (
                 <section className="plain-section">
                   <div className="section-heading">
                     <h2>Invocations</h2>

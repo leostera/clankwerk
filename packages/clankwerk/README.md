@@ -17,4 +17,6 @@ export default Clankwerk.defineWorkflow({ id: "greeting", graph: trigger.then(gr
 - `@leostera/clankwerk/connectors/coder-workspace`: credential-free, bounded Cloudflare Sandbox checkout and draft preparation. Host it in a separate container-enabled Worker only when the app needs a Linux workspace.
 - Other Codex connector modules are available as individual subpath exports.
 
+The scaffold's workflow page includes Overview, Invocations and a read-only Source tab. The Source API serves a compile-time `?raw` import of the deployed workflow file, allowlisted by workflow ID; do not serve arbitrary paths or secrets from a repository checkout.
+
 Use `clankwerk new <project> --domain <admin-hostname>` to scaffold an example with a declared manual trigger and thin Worker adapter. See the repository's `docs/github-workflows.md` for event workflow design and security/cutover requirements. Neither Clankwerk nor its connectors merge PRs automatically.

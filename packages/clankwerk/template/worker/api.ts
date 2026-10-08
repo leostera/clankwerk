@@ -5,6 +5,7 @@ import { helloTrigger } from "../triggers/manual.ts"
 import { getAgentByName } from "agents"
 import { definition as researcher } from "../agents/researcher.ts"
 import hello from "../workflows/hello.ts"
+import helloSource from "../workflows/hello.ts?raw"
 import { ensureIndex } from "./index.ts"
 import type { Researcher, WorkflowRun } from "./main.ts"
 
@@ -67,6 +68,10 @@ export function createApp(admin: string, triggers: string, project: string) {
         triggers: hello.graph.triggers,
       }),
     )
+  })
+  app.get("/api/workflows/:workflow/source", (c) => {
+    if (c.req.param("workflow") !== hello.id) return c.notFound()
+    return c.json({ path: "workflows/hello.ts", source: helloSource }, 200, { "Cache-Control": "no-store" })
   })
   app.get("/api/workflows/:workflow/invocations", async (c) => {
     if (c.req.param("workflow") !== hello.id) return c.notFound()

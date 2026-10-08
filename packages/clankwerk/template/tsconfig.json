@@ -8,7 +8,7 @@
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
-    "types": ["@cloudflare/workers-types"]
+    "types": ["@cloudflare/workers-types", "vite/client"]
   },
   "include": [
     "dashboard",
