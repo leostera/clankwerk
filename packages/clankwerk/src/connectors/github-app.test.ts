@@ -24,12 +24,17 @@ describe("GitHub App installation token", () => {
       return Response.json({
         token: "ghs_fake-token",
         expires_at: new Date(Date.now() + 3_600_000).toISOString(),
-        repositories: [{ full_name: "leostera/r4" }],
+        repositories: [{ id: 101, full_name: "leostera/r4" }],
         permissions: { issues: "write", metadata: "read" },
       })
     })
     const result = await issueInstallationToken({ ...base, fetch: request as typeof fetch })
-    expect(result).toMatchObject({ token: "ghs_fake-token", bot: "leo-r4[bot]" })
+    expect(result).toMatchObject({
+      token: "ghs_fake-token",
+      bot: "leo-r4[bot]",
+      repositoryId: 101,
+      installationId: 123,
+    })
     expect(request).toHaveBeenCalledTimes(2)
   })
   it("requires the granted publication permissions when minting a draft-capable token", async () => {
@@ -42,7 +47,7 @@ describe("GitHub App installation token", () => {
       return Response.json({
         token: "ghs_fake-token",
         expires_at: new Date(Date.now() + 3_600_000).toISOString(),
-        repositories: [{ full_name: "leostera/r4" }],
+        repositories: [{ id: 101, full_name: "leostera/r4" }],
         permissions: { issues: "write", contents: "write" },
       })
     })
@@ -61,13 +66,28 @@ describe("GitHub App installation token", () => {
         : Response.json({
             token: "ghs_fake-token",
             expires_at: new Date(Date.now() + 3_600_000).toISOString(),
-            repositories: [{ full_name: "leostera/other" }],
+            repositories: [{ id: 102, full_name: "leostera/other" }],
             permissions: { issues: "write" },
           }),
     )
     await expect(issueInstallationToken({ ...base, fetch: request as typeof fetch })).rejects.toThrow(
       "repository-scoped",
     )
+  })
+  it("pins the immutable repository ID when an enabled repo requests an effect", async () => {
+    const request = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/installation")) return Response.json({ id: 123, app_id: 42, app_slug: "leo-r4" })
+      expect(JSON.parse(init!.body as string)).toEqual({ repository_ids: [101], permissions: { issues: "write" } })
+      return Response.json({
+        token: "ghs_fake-token",
+        expires_at: new Date(Date.now() + 3_600_000).toISOString(),
+        repositories: [{ id: 102, full_name: "leostera/r4" }],
+        permissions: { issues: "write" },
+      })
+    })
+    await expect(
+      issueInstallationToken({ ...base, repositoryId: 101, fetch: request as typeof fetch }),
+    ).rejects.toThrow("repository-scoped")
   })
   it("fails closed for an installation belonging to a different App", async () => {
     const request = vi.fn(async () => Response.json({ id: 123, app_id: 5, app_slug: "other" }))

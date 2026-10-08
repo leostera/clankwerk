@@ -1,6 +1,10 @@
 # GitHub event workflows
 
-Clankwerk owns authenticated event admission and durable execution. An instance supplies a GitHub webhook secret, repository scope, workflow tasks, agent bindings, and optional authorization policy. **No additional Worker is needed for each workflow.** Credential-bearing GitHub APIs run only in the trusted instance Worker; a Coder container sees a read-only Git gateway, never the OAuth token.
+Clankwerk owns authenticated event admission and durable execution. An instance supplies a GitHub webhook secret, workflow tasks, agent bindings, and mandatory repository authorization policy. **No additional Worker is needed for each workflow.** Credential-bearing GitHub APIs run only in the trusted instance Worker; a Coder container sees a read-only Git gateway, never the OAuth token.
+
+## Current fixed-repository source (migration example)
+
+The following `githubTriggers` example describes today's **single-repository** connector. It is not the multi-repository host promised by [RFD0003](rfds/RFD0003-github-instance-host.md): hard-coded `leostera/r4` and `main` here, including the partition key below, would require a source change and redeploy for each new repo. RFD0003 requires an App-wide source plus a durable operator-managed enabled-repository registry, and dynamically scoped run/workspace/effect identities. That API is **proposed, not implemented**.
 
 ## Declare the source in `triggers/`
 
@@ -54,7 +58,7 @@ export function defineGitHubWorkflows(secret: string) {
 }
 ```
 
-The graph examples indicate the API shape, **not** a production-ready contribution workflow. Check eligible issue authors, command permissions, current PR head, review receipt ID and verdict, path limits, no-progress policy and actual Coder test output in source-defined tasks. Never treat a comment marker or agent output as authorization. Never auto-merge.
+The graph examples indicate the API shape, **not** a production-ready contribution workflow. Check eligible issue authors, command permissions, current PR head, review receipt ID and verdict, path limits, no-progress policy and actual Coder test output in source-defined tasks. Never treat a comment marker or agent output as authorization. This fixed-repository example never auto-merges; the optional, separately gated native auto-merge workflow in [RFD0003](rfds/RFD0003-github-instance-host.md) is not implemented here.
 
 ## Dispatch and storage
 
@@ -66,10 +70,10 @@ A manual/API source uses `Triggers.manual<Input>(...)` in `triggers/`, included 
 
 ## Capabilities
 
-- `GitHubConnection` stores encrypted user-to-server tokens, refreshes via a signed service binding and restricts all automated writes to its configured repository and branch prefix. Its `reviewSnapshot` is read-only (including fork PRs); `recordReview` posts a **COMMENTED**, exact-head review, pre-reserving a private nonce before the GitHub write. `trustedReview` verifies the returned review ID before revision. `ownedDraft(number, commit)` resolves an exact-head PR to an actual issue through its configured branch policy and a fresh GitHub issue read; PR body markers alone cannot authorize a revision.
+- The current example's `GitHubConnection` stores encrypted user-to-server tokens, refreshes via a signed service binding and restricts automated writes to its configured repository and branch prefix. This is not an App-wide, multi-repository credential design. RFD0003 requires tokens minted for exactly the enabled repository of each run and enablement checks before every write. Its `reviewSnapshot` is read-only (including fork PRs); `recordReview` posts a **COMMENTED**, exact-head review, pre-reserving a private nonce before the GitHub write. `trustedReview` verifies the returned review ID before revision. `ownedDraft(number, commit)` resolves an exact-head PR to an actual issue through its configured branch policy and a fresh GitHub issue read; PR body markers alone cannot authorize a revision.
 - `CoderWorkspace` is a separate, credential-free container. Its trusted Git gateway allows `git-upload-pack`, not push. `prepareDraft` produces bounded text-only files and a digest; the GitHub connector publishes with expected base/head checks and never force-pushes.
 - Tasks must provide stable idempotency keys for remote agent submissions and other external effects. The scheduler fences late step results and retries interrupted steps, but it cannot make a third-party API exactly-once by itself. GitHub publication and review helpers check remote state for retry recovery.
 
 ## Release and cutover
 
-Package code and the scaffold template are tested together. Publish a new pinned package version before switching an instance to these exports; do not deploy against an adjacent checkout. Verify package contents contain no service secrets. Enabling GitHub `pull_request`, `pull_request_review`, `issue_comment`, and `push` webhook subscriptions, migrating existing issue-run history, and removing an instance's legacy coordinator are **instance cutover steps**, not package publication steps.
+Package code and the scaffold template are tested together. Use a committed, digest-verified package snapshot for R4's migration (or publish a pinned release when needed); do not deploy against an adjacent checkout. Verify package contents contain no service secrets. Enabling GitHub `pull_request`, `pull_request_review`, `issue_comment`, and `push` webhook subscriptions, migrating existing issue-run history, and removing an instance's legacy coordinator are **instance cutover steps**, not package publication steps.

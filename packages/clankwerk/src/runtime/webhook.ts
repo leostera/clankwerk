@@ -1,4 +1,5 @@
 import type { WorkflowSource } from "./scheduler.js"
+import type { TriggerDefinition } from "../graph/node.js"
 import { workflowPartition } from "./partition.js"
 
 export interface WebhookActivation {
@@ -8,6 +9,22 @@ export interface WebhookActivation {
   key: string
   partition: string
   value: unknown
+}
+
+/** Stable key and partition shared by generic and source-authenticated webhook adapters. */
+export async function keyedWebhookActivation(
+  workflow: WorkflowSource,
+  trigger: TriggerDefinition,
+  value: unknown,
+): Promise<WebhookActivation> {
+  if (!trigger.key) throw new Error("Incomplete webhook trigger")
+  const identity = trigger.key(value)
+  if (!/^[a-zA-Z0-9._:-]{1,256}$/.test(identity)) throw new Error("Invalid webhook activation key")
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(identity)))
+  const suffix = Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")
+  const key = `${workflow.id}:${suffix}`
+  const partition = await workflowPartition(workflow, trigger.id, value, key)
+  return { workflowId: workflow.id, triggerId: trigger.id, key, partition, value }
 }
 
 /** Dispatch declared webhook triggers; the HTTP host supplies only the durable run launcher. */
@@ -56,13 +73,7 @@ export async function dispatchWebhook(
   for (const { workflow, trigger } of matching) {
     const value = await trigger.decode!(replay())
     if (value === undefined) continue
-    const identity = trigger.key!(value)
-    if (!/^[a-zA-Z0-9._:-]{1,256}$/.test(identity)) throw new Error("Invalid webhook activation key")
-    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(identity)))
-    const suffix = Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")
-    const key = `${workflow.id}:${suffix}`
-    const partition = await workflowPartition(workflow, trigger.id, value, key)
-    events.push({ workflowId: workflow.id, triggerId: trigger.id, key, partition, value })
+    events.push(await keyedWebhookActivation(workflow, trigger, value))
   }
   for (const event of events) await activate(event)
   return events

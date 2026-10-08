@@ -25,7 +25,7 @@ export async function verifyGitHubSignature(
   return crypto.subtle.verify("HMAC", key, signature, new Uint8Array(bytes).buffer)
 }
 
-async function limitedBody(request: Request, maximum: number): Promise<Uint8Array> {
+export async function readLimitedGitHubBody(request: Request, maximum: number): Promise<Uint8Array> {
   const reader = request.body?.getReader()
   if (!reader) throw new Error("Missing GitHub webhook body")
   const chunks: Uint8Array[] = []
@@ -96,7 +96,7 @@ export function githubTriggers(options: GitHubTriggerOptions) {
   const verify = async (request: Request) => {
     if (!secret || !request.headers.get("content-type")?.toLowerCase().startsWith("application/json"))
       throw new Error("GitHub webhook is not configured for JSON")
-    const bytes = await limitedBody(request, maxBytes)
+    const bytes = await readLimitedGitHubBody(request, maxBytes)
     if (!(await verifyGitHubSignature(bytes, request.headers.get("x-hub-signature-256"), secret)))
       throw new Error("Invalid GitHub webhook signature")
   }
@@ -104,7 +104,7 @@ export function githubTriggers(options: GitHubTriggerOptions) {
     const delivery = request.headers.get("x-github-delivery")
     if (!delivery || !/^[a-f0-9-]{36}$/i.test(delivery)) throw new Error("Invalid GitHub delivery ID")
     const data = object(
-      JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(await limitedBody(request, maxBytes))),
+      JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(await readLimitedGitHubBody(request, maxBytes))),
     )
     if (!data) throw new Error("Invalid GitHub payload")
     const repo = object(data.repository)

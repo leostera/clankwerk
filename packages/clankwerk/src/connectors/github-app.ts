@@ -7,6 +7,8 @@ type AppOptions = {
   privateKey: string
   owner: string
   repo: string
+  /** Pin an already enabled repository's immutable ID on every effect. */
+  repositoryId?: number
   permissions: {
     issues?: "write"
     contents?: "read" | "write"
@@ -19,7 +21,7 @@ type AppOptions = {
 /** A repository-scoped GitHub App installation token; never send it to an agent or browser. */
 export async function issueInstallationToken(
   options: AppOptions,
-): Promise<{ token: string; expiresAt: number; bot: string }> {
+): Promise<{ token: string; expiresAt: number; bot: string; repositoryId: number; installationId: number }> {
   const { clientId, appId, privateKey, owner, repo, permissions } = options
   if (
     !/^Iv[0-9a-zA-Z]{10,40}$/.test(clientId) ||
@@ -29,6 +31,7 @@ export async function issueInstallationToken(
     !/^[a-zA-Z0-9._-]{1,100}$/.test(repo) ||
     repo === "." ||
     repo === ".." ||
+    (options.repositoryId !== undefined && (!Number.isSafeInteger(options.repositoryId) || options.repositoryId < 1)) ||
     Object.keys(permissions).length === 0
   )
     throw new Error("Invalid GitHub App or repository configuration")
@@ -66,7 +69,7 @@ export async function issueInstallationToken(
   )
     throw new Error("Repository is not installed on the configured GitHub App")
   const issued = await request(`/app/installations/${installation.id}/access_tokens`, jwt, {
-    repositories: [repo],
+    ...(options.repositoryId ? { repository_ids: [options.repositoryId] } : { repositories: [repo] }),
     permissions,
   })
   if (
@@ -77,7 +80,11 @@ export async function issueInstallationToken(
     Date.parse(issued.expires_at) <= Date.now() + 60_000 ||
     !Array.isArray(issued.repositories) ||
     issued.repositories.length !== 1 ||
-    (issued.repositories[0] as { full_name?: unknown }).full_name !== `${owner}/${repo}` ||
+    typeof (issued.repositories[0] as { full_name?: unknown }).full_name !== "string" ||
+    (issued.repositories[0] as { full_name: string }).full_name.toLowerCase() !== `${owner}/${repo}`.toLowerCase() ||
+    !Number.isSafeInteger((issued.repositories[0] as { id?: unknown }).id) ||
+    Number((issued.repositories[0] as { id?: unknown }).id) < 1 ||
+    (options.repositoryId !== undefined && (issued.repositories[0] as { id?: unknown }).id !== options.repositoryId) ||
     Object.entries(permissions).some(
       ([name, level]) => (issued.permissions as Record<string, unknown> | undefined)?.[name] !== level,
     )
@@ -87,5 +94,7 @@ export async function issueInstallationToken(
     token: issued.token,
     expiresAt: Date.parse(issued.expires_at),
     bot: `${installation.app_slug}[bot]`,
+    repositoryId: (issued.repositories[0] as { id: number }).id,
+    installationId: installation.id as number,
   }
 }
