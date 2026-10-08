@@ -1,12 +1,15 @@
 import { Cause, Effect, type Schema } from "effect"
 import { findNodeExecutionError, NodeExecutionError } from "./errors.js"
 import { Id, type NodeId, type TriggerId } from "./id.js"
+import type { GitHubWorkflowCapability } from "../connectors/github-workflow-context.js"
 import { notify, type SchedulerObserver } from "./observer.js"
 
 export interface ExecutionContext {
   readonly triggerValues: ReadonlyMap<TriggerId, unknown>
   readonly runId?: import("./id.js").RunId
   readonly nodeId?: NodeId
+  /** Ephemeral, repository-scoped Octokit access for trusted Worker steps only. Not persisted or sent to agents. */
+  readonly github?: GitHubWorkflowCapability
   /** Workflow-mediated calls are recorded against this run and step before dispatch. */
   readonly callAgent?: (agentId: string, instanceName: string, request: Request) => Promise<Response>
   readonly observer?: SchedulerObserver

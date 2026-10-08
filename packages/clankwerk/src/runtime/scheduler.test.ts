@@ -6,6 +6,7 @@ import { Triggers } from "../graph/trigger.js"
 import { Workflow } from "../graph/workflow.js"
 import { createWorkflowManifest } from "../graph/manifest.js"
 import { WorkflowScheduler, type RunRecord, type RunStore } from "./scheduler.js"
+import { githubWorkflowCapability } from "../connectors/github-workflow-context.js"
 
 function memoryStore() {
   let state: RunRecord | undefined
@@ -29,6 +30,52 @@ const triggerId = Id.trigger("pull-request")
 const trigger = Triggers.webhook<{ number: number; head: string }>({ id: triggerId })
 
 describe("Clankwerk workflow scheduler", () => {
+  it("injects scoped Octokit into a trusted workflow step without persisting the client or token", async () => {
+    const capability = githubWorkflowCapability({
+      repository: { id: 11, fullName: "team/first", installationId: 8 },
+      workflowId: "repository-lookup",
+      policy: async () => ({
+        id: 11,
+        fullName: "team/first",
+        installationId: 8,
+        base: "main",
+        revision: 1,
+        enabled: true,
+        workflows: ["repository-lookup"],
+        minimumIssue: 1,
+      }),
+      allowedPermissions: { contents: "read" },
+      app: { clientId: "test-client", appId: 42, privateKey: "private" },
+      issueToken: async () => ({
+        token: "ghs_only-for-test",
+        repositoryId: 11,
+        installationId: 8,
+        bot: "bot[bot]",
+        expiresAt: Date.now() + 60_000,
+      }),
+    })
+    const task = Task.fn({
+      id: Id.node("lookup-repository"),
+      run: (_: unknown, context) =>
+        Effect.tryPromise(() =>
+          context!.github!.withOctokit({ contents: "read" }, async (_client, scope) => scope.owner + "/" + scope.repo),
+        ),
+    })
+    const workflow = { id: "repository-lookup", graph: task }
+    const { store } = memoryStore()
+    const scheduler = new WorkflowScheduler({
+      id: "repo:11:lookup",
+      store,
+      workflows: { [workflow.id]: workflow },
+      context: () => ({ github: capability }),
+    })
+    await scheduler.start(workflow.id, null)
+    await scheduler.alarm()
+    await scheduler.alarm()
+    expect((await scheduler.status())?.steps[0]?.output).toBe("team/first")
+    expect(JSON.stringify(await scheduler.status())).not.toContain("ghs_only-for-test")
+  })
+
   it("runs a triggered workflow durably using the trigger value rather than the untrusted start input", async () => {
     const task = Task.fn({
       id: Id.node("record-head"),

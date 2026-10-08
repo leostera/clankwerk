@@ -68,6 +68,25 @@ Each event gets a deterministic, workflow-namespaced hash key. Re-delivery is de
 
 A manual/API source uses `Triggers.manual<Input>(...)` in `triggers/`, included in the workflow graph, and `dispatchManual` at the Access-protected HTTP boundary. Scheduled polling uses `Triggers.cron` and `dispatchCron(schedule, scheduledTime, workflows, activate)` from the platform `scheduled` handler. Replays in the same minute deduplicate; cron values are part of the workflow manifest. Never start a task directly while claiming it came from a trigger.
 
+## Scoped GitHub capability (package API; not yet wired into R4)
+
+When the host connects the per-repo registry to the scheduler, a trusted Worker step can use the ephemeral `context.github` capability instead of inventing a GitHub-specific RPC method for every operation:
+
+```ts
+Task.fn({
+  id: Id.node("inspect-repo"),
+  run: (_input, context) =>
+    Effect.tryPromise(() =>
+      context!.github!.withOctokit({ contents: "read" }, async (client, scope) => {
+        const { data } = await client.rest.repos.get({ owner: scope.owner, repo: scope.repo })
+        return { defaultBranch: data.default_branch }
+      }),
+    ),
+})
+```
+
+`scope` is derived from the authenticated run, not a repository selected by a prompt or task input. Clankwerk checks the live enabled-repository policy and the workflow's declared maximum permissions, mints a token for **only that repository**, and rechecks policy before invoking the callback. Only source-controlled Worker tasks are trusted to use Octokit; Pi/Coder cannot call this capability, and its token/client are not serializable run state. Shared idempotent publication helpers remain preferable for retried writes. A custom Worker task with raw Octokit is privileged application code, not a sandbox or a substitute for GitHub branch protection.
+
 ## Capabilities
 
 - The current example's `GitHubConnection` stores encrypted user-to-server tokens, refreshes via a signed service binding and restricts automated writes to its configured repository and branch prefix. This is not an App-wide, multi-repository credential design. RFD0003 requires tokens minted for exactly the enabled repository of each run and enablement checks before every write. Its `reviewSnapshot` is read-only (including fork PRs); `recordReview` posts a **COMMENTED**, exact-head review, pre-reserving a private nonce before the GitHub write. `trustedReview` verifies the returned review ID before revision. `ownedDraft(number, commit)` resolves an exact-head PR to an actual issue through its configured branch policy and a fresh GitHub issue read; PR body markers alone cannot authorize a revision.
