@@ -97,6 +97,21 @@ describe("repository-scoped issue effects", () => {
     await expect(readIssueLabels(client, scope, 1, "Changed", args.body)).rejects.toThrow("changed")
   })
 
+  it("does not add a label when policy is revoked during the preceding GitHub reads", async () => {
+    const { client, requests } = mockClient()
+    await expect(
+      ensureIssueLabel(client, scope, {
+        ...args,
+        label: "bug",
+        allowed: ["bug"],
+        beforeWrite: async () => {
+          throw new Error("Repository was disabled")
+        },
+      }),
+    ).rejects.toThrow("disabled")
+    expect(requests.some((request) => request.method === "POST")).toBe(false)
+  })
+
   it("reconciles a lost comment acknowledgement with the signed marker without a second write", async () => {
     const fixture = mockClient()
     const { client, comments } = fixture

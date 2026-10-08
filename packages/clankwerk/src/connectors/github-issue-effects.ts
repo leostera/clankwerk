@@ -72,7 +72,14 @@ export async function readIssueLabels(
 export async function ensureIssueLabel(
   client: Octokit,
   scope: IssueScope,
-  input: { number: number; title: string; body: string; label: string; allowed: readonly string[] },
+  input: {
+    number: number
+    title: string
+    body: string
+    label: string
+    allowed: readonly string[]
+    beforeWrite?: () => Promise<void>
+  },
 ): Promise<{ label: string; applied: boolean }> {
   const { number, title, body, label, allowed } = input
   if (!allowed.includes(label) || !label.trim()) throw new Error("Unsupported automation label")
@@ -80,6 +87,8 @@ export async function ensureIssueLabel(
   if (!labels.some((entry) => entry.name === label)) throw new Error("Label is not configured on the repository")
   if (current.includes(label)) return { label, applied: true }
   const args = target(scope, number)
+  // A read and label-catalog lookup can outlive a repository disable. Recheck at the write edge.
+  await input.beforeWrite?.()
   await client.rest.issues.addLabels({ ...args, labels: [label] })
   // Reconcile an ambiguous write against the current GitHub issue, not local optimism.
   const { data: issue } = await client.rest.issues.get(args)
