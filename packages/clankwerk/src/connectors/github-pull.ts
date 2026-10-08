@@ -15,7 +15,14 @@ export type PullSnapshot = {
   reviewable: boolean
 }
 export type OwnedDraft = {
-  issue: { repository: string; number: number; title: string; body: string; url: string; author: string }
+  issue: {
+    repository: string
+    number: number
+    title: string
+    body: string
+    url: string
+    author: string
+  }
   pull: DraftResult
   base: string
 }
@@ -214,19 +221,36 @@ export async function postCommitReview(
   const marker = `<!-- clankwerk-review:${claimed.nonce}:${input.commit} -->`
   // Existing GitHub reviews can be numerous. Never rely on a user-supplied marker without the private nonce.
   for (let page = 1; page <= 11; page++) {
-    const { data: existing } = await octokit.rest.pulls.listReviews({ ...args, per_page: 100, page })
+    const { data: existing } = await octokit.rest.pulls.listReviews({
+      ...args,
+      per_page: 100,
+      page,
+    })
     const previous = existing.find(
       (item) => item.body?.includes(marker) && item.user?.login === input.actor && item.commit_id === input.commit,
     )
     if (previous) {
       if (!(await receipts.complete(key, { ...claimed, reviewId: previous.id }, token)))
         throw new Error("Review publication lease changed")
-      return { url: previous.html_url ?? pull.html_url, reviewId: previous.id, alreadyPosted: true }
+      return {
+        url: previous.html_url ?? pull.html_url,
+        reviewId: previous.id,
+        alreadyPosted: true,
+      }
     }
     if (existing.length < 100) break
     if (page === 11) throw new Error("Review history exceeds safe recovery limit")
   }
-  const body = `Independent review for \`${input.commit}\`: **${review.verdict.replaceAll("_", " ")}**.\n\n${review.summary}\n\n${marker}`
+  // GitHub forbids approving or requesting changes on a PR authored by the reviewer.
+  // Its own drafts retain an honest COMMENT review; dimension checks still carry blocking verdicts.
+  const selfReview = pull.user?.login?.toLowerCase() === input.actor.toLowerCase()
+  const event =
+    selfReview || review.verdict === "blocked"
+      ? ("COMMENT" as const)
+      : review.verdict === "changes_requested"
+        ? ("REQUEST_CHANGES" as const)
+        : ("APPROVE" as const)
+  const body = `Independent review for \`${input.commit}\`: **${review.verdict.replaceAll("_", " ")}**.\n\n${review.summary}${selfReview ? "\n\nGitHub does not allow this bot to approve or request changes on its own PR; see the dimension checks." : ""}\n\n${marker}`
   const comments = review.findings.map((item) => ({
     path: item.path,
     line: item.line,
@@ -236,7 +260,13 @@ export async function postCommitReview(
   let posted
   try {
     posted = (
-      await octokit.rest.pulls.createReview({ ...args, commit_id: input.commit, event: "COMMENT", body, comments })
+      await octokit.rest.pulls.createReview({
+        ...args,
+        commit_id: input.commit,
+        event,
+        body,
+        comments,
+      })
     ).data
   } catch (error) {
     if (!(comments.length && error instanceof Error && "status" in error && error.status === 422)) throw error
@@ -247,7 +277,7 @@ export async function postCommitReview(
       await octokit.rest.pulls.createReview({
         ...args,
         commit_id: input.commit,
-        event: "COMMENT",
+        event,
         body: fallback,
         comments: [],
       })

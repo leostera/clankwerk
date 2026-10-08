@@ -16,7 +16,7 @@ const review = {
   summary: "Fix this",
   findings: [{ path: "README.md", line: 2, comment: "Incorrect example" }],
 }
-function fixture(beforePost?: () => Promise<void>, actor = "leostera") {
+function fixture(beforePost?: () => Promise<void>, actor = "leostera", author = actor) {
   const receipts = new Map<string, ReviewReceipt>()
   const store: ReviewReceiptStore = {
     get: async (key) => receipts.get(key),
@@ -40,7 +40,14 @@ function fixture(beforePost?: () => Promise<void>, actor = "leostera") {
   }
   let pullHead = head
   let posted = 0
-  const reviews: { id: number; body: string; user: { login: string }; commit_id: string; html_url: string }[] = []
+  const events: string[] = []
+  const reviews: {
+    id: number
+    body: string
+    user: { login: string }
+    commit_id: string
+    html_url: string
+  }[] = []
   const client = {
     rest: {
       pulls: {
@@ -50,16 +57,20 @@ function fixture(beforePost?: () => Promise<void>, actor = "leostera") {
             head: { sha: pullHead, repo: { full_name: "leostera/r4" }, ref: "r4/issue-4" },
             base: { ref: "main", sha: "b".repeat(40), repo: { full_name: "leostera/r4" } },
             draft: true,
+            user: { login: author },
             title: "Fix",
             body: "Closes #4",
             html_url: "https://github.com/leostera/r4/pull/5",
           },
         }),
-        listFiles: async () => ({ data: [{ filename: "README.md", patch: "@@ -1 +1 @@\n+example" }] }),
+        listFiles: async () => ({
+          data: [{ filename: "README.md", patch: "@@ -1 +1 @@\n+example" }],
+        }),
         listReviews: async () => ({ data: reviews }),
-        createReview: async (params: { body: string; commit_id: string }) => {
+        createReview: async (params: { body: string; commit_id: string; event: string }) => {
           await beforePost?.()
           posted++
+          events.push(params.event)
           const result = {
             id: posted,
             body: params.body,
@@ -78,6 +89,7 @@ function fixture(beforePost?: () => Promise<void>, actor = "leostera") {
     store,
     receipts,
     reviews,
+    events,
     count: () => posted,
     setHead: (value: string) => {
       pullHead = value
@@ -146,6 +158,33 @@ test("GitHub App bot reviews reconcile against the bot identity, not a human log
     alreadyPosted: true,
   })
   expect(env.count()).toBe(1)
+})
+
+test("formal change requests and approvals apply only to PRs authored by someone else", async () => {
+  const changes = fixture(undefined, "leo-r4[bot]", "leostera")
+  await postCommitReview(changes.client, scope, changes.store, {
+    number: 5,
+    commit: head,
+    actor: "leo-r4[bot]",
+    review,
+  })
+  expect(changes.events).toEqual(["REQUEST_CHANGES"])
+  const approved = fixture(undefined, "leo-r4[bot]", "leostera")
+  await postCommitReview(approved.client, scope, approved.store, {
+    number: 5,
+    commit: head,
+    actor: "leo-r4[bot]",
+    review: { verdict: "looks_good", summary: "All checks passed", findings: [] },
+  })
+  expect(approved.events).toEqual(["APPROVE"])
+  const own = fixture(undefined, "leo-r4[bot]")
+  await postCommitReview(own.client, scope, own.store, {
+    number: 5,
+    commit: head,
+    actor: "leo-r4[bot]",
+    review,
+  })
+  expect(own.events).toEqual(["COMMENT"])
 })
 
 test("posted COMMENTED reviews are idempotent and only stored review IDs drive revisions", async () => {

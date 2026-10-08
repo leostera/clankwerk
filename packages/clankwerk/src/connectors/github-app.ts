@@ -7,7 +7,12 @@ type AppOptions = {
   privateKey: string
   owner: string
   repo: string
-  permissions: { issues: "write"; contents?: "read" | "write"; pull_requests?: "write" }
+  permissions: {
+    issues?: "write"
+    contents?: "read" | "write"
+    pull_requests?: "write"
+    checks?: "write"
+  }
   fetch?: typeof fetch
 }
 
@@ -23,7 +28,8 @@ export async function issueInstallationToken(
     !/^[a-zA-Z0-9-]{1,39}$/.test(owner) ||
     !/^[a-zA-Z0-9._-]{1,100}$/.test(repo) ||
     repo === "." ||
-    repo === ".."
+    repo === ".." ||
+    Object.keys(permissions).length === 0
   )
     throw new Error("Invalid GitHub App or repository configuration")
   // GitHub downloads PKCS#1 RSA PEM; WebCrypto/Jose require PKCS#8. Convert in memory.
@@ -77,5 +83,9 @@ export async function issueInstallationToken(
     )
   )
     throw new Error("GitHub did not issue the requested repository-scoped installation token")
-  return { token: issued.token, expiresAt: Date.parse(issued.expires_at), bot: `${installation.app_slug}[bot]` }
+  return {
+    token: issued.token,
+    expiresAt: Date.parse(issued.expires_at),
+    bot: `${installation.app_slug}[bot]`,
+  }
 }
