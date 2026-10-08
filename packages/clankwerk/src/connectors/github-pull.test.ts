@@ -169,6 +169,14 @@ test("formal change requests and approvals apply only to PRs authored by someone
     review,
   })
   expect(changes.events).toEqual(["REQUEST_CHANGES"])
+  const blockedWithFinding = fixture(undefined, "leo-r4[bot]", "leostera")
+  await postCommitReview(blockedWithFinding.client, scope, blockedWithFinding.store, {
+    number: 5,
+    commit: head,
+    actor: "leo-r4[bot]",
+    review: { ...review, verdict: "blocked" },
+  })
+  expect(blockedWithFinding.events).toEqual(["REQUEST_CHANGES"])
   const approved = fixture(undefined, "leo-r4[bot]", "leostera")
   await postCommitReview(approved.client, scope, approved.store, {
     number: 5,

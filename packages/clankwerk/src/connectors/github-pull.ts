@@ -244,12 +244,13 @@ export async function postCommitReview(
   // GitHub forbids approving or requesting changes on a PR authored by the reviewer.
   // Its own drafts retain an honest COMMENT review; dimension checks still carry blocking verdicts.
   const selfReview = pull.user?.login?.toLowerCase() === input.actor.toLowerCase()
-  const event =
-    selfReview || review.verdict === "blocked"
-      ? ("COMMENT" as const)
-      : review.verdict === "changes_requested"
-        ? ("REQUEST_CHANGES" as const)
-        : ("APPROVE" as const)
+  const event = selfReview
+    ? ("COMMENT" as const)
+    : review.verdict === "changes_requested" || review.findings.length > 0
+      ? ("REQUEST_CHANGES" as const)
+      : review.verdict === "looks_good"
+        ? ("APPROVE" as const)
+        : ("COMMENT" as const)
   const body = `Independent review for \`${input.commit}\`: **${review.verdict.replaceAll("_", " ")}**.\n\n${review.summary}${selfReview ? "\n\nGitHub does not allow this bot to approve or request changes on its own PR; see the dimension checks." : ""}\n\n${marker}`
   const comments = review.findings.map((item) => ({
     path: item.path,
