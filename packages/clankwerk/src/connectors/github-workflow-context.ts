@@ -62,6 +62,23 @@ export function githubWorkflowCapability(options: {
       )
         throw new Error("Repository policy changed before GitHub effect")
       const client = new Octokit({ auth: issued.token })
+      // A repository-scoped token may still read public resources elsewhere. Restrict this capability's
+      // REST routes too; GraphQL and non-repository endpoints need separate, deliberately reviewed helpers.
+      client.hook.before("request", (request) => {
+        const parts = new URL(request.url, "https://api.github.com").pathname.split("/")
+        const match = (part: string | undefined, key: "owner" | "repo", expected: string) =>
+          part === `{${key}}`
+            ? request[key] === expected
+            : typeof part === "string" && decodeURIComponent(part).toLowerCase() === expected
+        if (
+          parts[1] !== "repos" ||
+          !match(parts[2], "owner", owner) ||
+          !match(parts[3], "repo", repo) ||
+          (request.owner !== undefined && request.owner !== owner) ||
+          (request.repo !== undefined && request.repo !== repo)
+        )
+          throw new Error("GitHub request outside the enabled repository")
+      })
       const scope: GitHubScope = Object.freeze({
         repositoryId: latest.id,
         installationId: latest.installationId,

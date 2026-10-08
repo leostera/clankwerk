@@ -54,6 +54,24 @@ describe("trusted workflow's scoped Octokit capability", () => {
     )
   })
 
+  it("blocks REST reads of a different repo and non-repo APIs even when the token could read public data", async () => {
+    const { capability } = setup()
+    const fetcher = vi.fn()
+    await capability.withOctokit({ contents: "read" }, async (client) => {
+      await expect(
+        client.request("GET /repos/{owner}/{repo}", {
+          owner: "team",
+          repo: "other",
+          request: { fetch: fetcher },
+        }),
+      ).rejects.toThrow("outside the enabled repository")
+      await expect(client.request("GET /user", { request: { fetch: fetcher } })).rejects.toThrow(
+        "outside the enabled repository",
+      )
+      expect(fetcher).not.toHaveBeenCalled()
+    })
+  })
+
   it("refuses undeclared permissions, a changed repo or a disabled workflow", async () => {
     issueToken.mockClear()
     const { capability, update } = setup()
