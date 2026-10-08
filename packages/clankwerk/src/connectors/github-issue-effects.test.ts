@@ -9,7 +9,6 @@ import {
 
 const scope = { owner: "team", repo: "first" }
 const args = { number: 1, title: "Needs a label", body: "Details" }
-const url = "https://github.com/team/first/issues/1"
 const receiptStore = () => {
   const state = new Map<string, IssueCommentReceipt>()
   return {
@@ -20,7 +19,8 @@ const receiptStore = () => {
     state,
   }
 }
-function mockClient() {
+function mockClient(repo = "first") {
+  const issueUrl = `https://github.com/team/${repo}/issues/1`
   let labels: string[] = []
   const comments: { id: number; html_url: string; body: string; user: { login: string } }[] = []
   let writes = 0
@@ -33,29 +33,29 @@ function mockClient() {
         const method = init?.method ?? "GET"
         const path = parsed.pathname
         requests.push({ path, method })
-        if (!path.startsWith("/repos/team/first/")) throw new Error("Cross-repository request")
-        if (path === "/repos/team/first/issues/1" && method === "GET")
+        if (!path.startsWith(`/repos/team/${repo}/`)) throw new Error("Cross-repository request")
+        if (path === `/repos/team/${repo}/issues/1` && method === "GET")
           return Response.json({
             number: 1,
             state: "open",
             title: args.title,
             body: args.body,
-            html_url: url,
+            html_url: issueUrl,
             labels: labels.map((name) => ({ name })),
           })
-        if (path === "/repos/team/first/labels" && method === "GET")
+        if (path === `/repos/team/${repo}/labels` && method === "GET")
           return Response.json([{ name: "bug", description: "Bug" }])
-        if (path === "/repos/team/first/issues/1/labels" && method === "POST") {
+        if (path === `/repos/team/${repo}/issues/1/labels` && method === "POST") {
           labels = ["bug"]
           return Response.json([{ name: "bug" }])
         }
-        if (path === "/repos/team/first/issues/1/comments" && method === "GET") return Response.json(comments)
-        if (path === "/repos/team/first/issues/1/comments" && method === "POST") {
+        if (path === `/repos/team/${repo}/issues/1/comments` && method === "GET") return Response.json(comments)
+        if (path === `/repos/team/${repo}/issues/1/comments` && method === "POST") {
           writes++
           const payload = JSON.parse(String(init?.body)) as { body: string }
           const comment = {
             id: writes,
-            html_url: `${url}#issuecomment-${writes}`,
+            html_url: `${issueUrl}#issuecomment-${writes}`,
             body: payload.body,
             user: { login: "bot[bot]" },
           }
@@ -111,7 +111,60 @@ describe("repository-scoped issue effects", () => {
     expect(second).toEqual({ url: first.url, alreadyPosted: true })
     expect(comments).toHaveLength(1)
     expect(fixture.writes).toBe(1)
-    expect(receipts.state.get("repro-comment:1:issue-1-repro-v1")).toEqual({ url: first.url })
+    expect(receipts.state.get("team/first:repro-comment:1:issue-1-repro-v1")).toEqual({ url: first.url })
+  })
+
+  it("reconciles R4's historical marker and receipt key without changing its digest", async () => {
+    const fixture = mockClient()
+    const secret = "legacy-secret"
+    const key = "issue-1-repro-v1"
+    const imported = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    )
+    const hash = new Uint8Array(await crypto.subtle.sign("HMAC", imported, new TextEncoder().encode(`r4:1:${key}`)))
+    const marker = `<!-- r4-repro:${Array.from(hash, (b) => b.toString(16).padStart(2, "0")).join("")} -->`
+    fixture.comments.push({
+      id: 13,
+      html_url: "https://github.com/team/first/issues/1#issuecomment-13",
+      body: marker,
+      user: { login: "leostera" },
+    })
+    const receipts = receiptStore()
+    const result = await ensureIssueComment(
+      fixture.client,
+      {
+        ...scope,
+        namespace: "r4",
+        markerIdentity: "r4",
+        receiptPrefix: "",
+        secret,
+        bot: "bot[bot]",
+        historicalAuthor: "leostera",
+      },
+      receipts,
+      { number: 1, key, kind: "repro", body: "Evidence" },
+    )
+    expect(result.alreadyPosted).toBe(true)
+    expect(fixture.writes).toBe(0)
+    expect(receipts.state.get("repro-comment:1:issue-1-repro-v1")).toEqual({ url: result.url })
+  })
+
+  it("separates markers and receipts when two repositories share the same issue and key", async () => {
+    const first = mockClient("first")
+    const second = mockClient("second")
+    const receipts = receiptStore() // Even a shared DO cannot collide on repository-qualified receipts.
+    const input = { number: 1, key: "issue-1-repro-v1", kind: "repro", body: "Evidence" }
+    const common = { namespace: "clankwerk", secret: "shared-secret", bot: "bot[bot]" }
+    await ensureIssueComment(first.client, { ...common, owner: "team", repo: "first" }, receipts, input)
+    await ensureIssueComment(second.client, { ...common, owner: "team", repo: "second" }, receipts, input)
+    expect(first.comments[0]?.body).not.toBe(second.comments[0]?.body)
+    expect(receipts.state.size).toBe(2)
+    expect(first.writes).toBe(1)
+    expect(second.writes).toBe(1)
   })
 
   it("rejects cross-repo or closed/stale issue writes", async () => {

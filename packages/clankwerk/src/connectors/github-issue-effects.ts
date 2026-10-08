@@ -8,6 +8,10 @@ export type IssueCommentScope = IssueScope & {
   bot: string
   /** Explicitly trusted historical author for an existing signed marker. */
   historicalAuthor?: string
+  /** Optional legacy marker identity. Default includes the canonical owner/repo to prevent cross-repo collisions. */
+  markerIdentity?: string
+  /** Optional legacy receipt prefix. Default includes owner/repo even when sharing one DO. */
+  receiptPrefix?: string
 }
 export type IssueCommentReceipt = { url?: string; pending?: boolean }
 export interface IssueCommentReceiptStore {
@@ -103,6 +107,12 @@ export async function ensureIssueComment(
     body.length > 5_000
   )
     throw new Error("Invalid GitHub issue comment")
+  const markerIdentity = scope.markerIdentity ?? `${scope.owner}/${scope.repo}:${scope.namespace}`
+  if (
+    !/^[a-zA-Z0-9._:/-]{1,200}$/.test(markerIdentity) ||
+    (scope.receiptPrefix !== undefined && !/^[a-zA-Z0-9._:/-]{0,200}$/.test(scope.receiptPrefix))
+  )
+    throw new Error("Invalid GitHub issue comment identity")
   const secret = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(scope.secret),
@@ -111,7 +121,7 @@ export async function ensureIssueComment(
     ["sign"],
   )
   const digest = new Uint8Array(
-    await crypto.subtle.sign("HMAC", secret, new TextEncoder().encode(`${scope.namespace}:${number}:${key}`)),
+    await crypto.subtle.sign("HMAC", secret, new TextEncoder().encode(`${markerIdentity}:${number}:${key}`)),
   )
   const marker = `<!-- ${scope.namespace}-${kind}:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")} -->`
   const { data: issue } = await client.rest.issues.get(args)
@@ -124,7 +134,7 @@ export async function ensureIssueComment(
         (scope.historicalAuthor && comment.user?.login === scope.historicalAuthor)) &&
       comment.body?.includes(marker),
   )
-  const receiptKey = `${kind}-comment:${number}:${key}`
+  const receiptKey = `${scope.receiptPrefix ?? `${scope.owner}/${scope.repo}:`}${kind}-comment:${number}:${key}`
   if (existing) {
     await receipts.put(receiptKey, { url: existing.html_url })
     return { url: existing.html_url, alreadyPosted: true }
