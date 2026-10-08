@@ -23,6 +23,7 @@
     "./connectors/github-trigger": "./src/connectors/github-trigger.ts",
     "./connectors/github-app-event": "./src/connectors/github-app-event.ts",
     "./connectors/github-app-source": "./src/connectors/github-app-source.ts",
+    "./connectors/github-issue-effects": "./src/connectors/github-issue-effects.ts",
     "./connectors/github-repository-policy": "./src/connectors/github-repository-policy.ts",
     "./connectors/github-workflow-context": "./src/connectors/github-workflow-context.ts",
     "./connectors/github-delivery-claim": "./src/connectors/github-delivery-claim.ts",
