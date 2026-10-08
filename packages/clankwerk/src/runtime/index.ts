@@ -1,5 +1,11 @@
 export { WorkflowScheduler } from "./scheduler.js"
-export { durableObjectRunStore, durableObjectQueueStore, durableReviewReceipts } from "./cloudflare.js"
+export { ensureIndex, projectRun } from "./cloudflare-index.js"
+export {
+  durableObjectRunStore,
+  durableObjectQueueStore,
+  durableReviewReceipts,
+  cloudflareRunScheduler,
+} from "./cloudflare.js"
 export { WorkflowQueue } from "./queue.js"
 export { workflowInvocations, workflowMetrics } from "./run-index.js"
 export type { IndexedRun, InvocationPage, WorkflowMetrics } from "./run-index.js"

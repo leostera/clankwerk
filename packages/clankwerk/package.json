@@ -22,6 +22,7 @@
     "./connectors/github-app": "./src/connectors/github-app.ts",
     "./connectors/github-trigger": "./src/connectors/github-trigger.ts",
     "./connectors/github-pull": "./src/connectors/github-pull.ts",
+    "./connectors/github-checks": "./src/connectors/github-checks.ts",
     "./connectors/github-publish": "./src/connectors/github-publish.ts",
     "./connectors/github-branch-sync": "./src/connectors/github-branch-sync.ts",
     "./connectors/github-repositories": "./src/connectors/github-repositories.ts",

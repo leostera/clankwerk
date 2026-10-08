@@ -1,6 +1,19 @@
-import type { RunRecord, RunStore } from "./scheduler.js"
+import { WorkflowScheduler, type RunRecord, type RunStore, type SchedulerOptions } from "./scheduler.js"
 import type { ReviewReceipt, ReviewReceiptStore } from "../connectors/github-pull.js"
 import type { QueueState, QueuedActivation, WorkflowQueueStore } from "./queue.js"
+
+/** Compose a run coordinator for one DO instance; project code supplies only its workflow registry and capabilities. */
+export function cloudflareRunScheduler(
+  ctx: DurableObjectState,
+  options: Omit<SchedulerOptions, "id" | "store"> & { storageKey?: string },
+): WorkflowScheduler {
+  const { storageKey = "run", ...scheduler } = options
+  return new WorkflowScheduler({
+    ...scheduler,
+    id: ctx.id.toString(),
+    store: durableObjectRunStore(ctx.storage, storageKey),
+  })
+}
 
 /** Cloudflare storage adapter; the run claim is atomic before any workflow task can execute. */
 export function durableReviewReceipts(storage: DurableObjectStorage): ReviewReceiptStore {

@@ -57,6 +57,8 @@ export interface GitHubTriggerOptions {
   maxBytes?: number
   /** If set, only pushes to this base branch activate the push trigger. */
   baseBranch?: string
+  /** Default: every reopened delivery is a new event. Choose per-issue when one issue has one lifetime run. */
+  issueIdentity?: "per-reopen" | "per-issue"
 }
 
 export type GitHubIssueEvent = {
@@ -83,7 +85,7 @@ export type GitHubCommentEvent = {
 
 /** Declare signed, keyed GitHub triggers; no HTTP handler or workflow transition is instance-specific. */
 export function githubTriggers(options: GitHubTriggerOptions) {
-  const { secret, repository, path, maxBytes = 1_048_576, baseBranch } = options
+  const { secret, repository, path, maxBytes = 1_048_576, baseBranch, issueIdentity = "per-reopen" } = options
   if (
     !/^[a-zA-Z0-9-]{1,39}\/[a-zA-Z0-9._-]{1,100}$/.test(repository) ||
     !path.startsWith("/") ||
@@ -119,7 +121,9 @@ export function githubTriggers(options: GitHubTriggerOptions) {
     path,
     verify,
     key: (value) =>
-      `${namespace}:issue:${value.number}:${value.action}${value.action === "reopened" ? `:${value.deliveryId}` : ""}`,
+      issueIdentity === "per-issue"
+        ? `${namespace}:issue:${value.number}`
+        : `${namespace}:issue:${value.number}:${value.action}${value.action === "reopened" ? `:${value.deliveryId}` : ""}`,
     decode: async (request) => {
       const { event, delivery, data } = await payload(request)
       if (event !== "issues" || (data.action !== "opened" && data.action !== "reopened")) return undefined

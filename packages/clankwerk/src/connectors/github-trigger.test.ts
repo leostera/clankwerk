@@ -68,6 +68,19 @@ test("signed base-branch pushes activate a declared push trigger for base-sync w
   expect(await scoped.push.triggers[0]!.decode!(unrelated)).toBeUndefined()
 })
 
+test("one-run-per-issue admission joins reopened deliveries without changing the default", () => {
+  const shared = githubTriggers({
+    secret,
+    repository: "leostera/r4",
+    path: "/github/issues",
+    issueIdentity: "per-issue",
+  })
+  const opened = { repository: "leostera/r4", number: 4, action: "opened", deliveryId: "first" }
+  const reopened = { ...opened, action: "reopened", deliveryId: "second" }
+  expect(shared.issue.triggers[0]!.key!(opened)).toBe(shared.issue.triggers[0]!.key!(reopened))
+  expect(triggers.issue.triggers[0]!.key!(opened)).not.toBe(triggers.issue.triggers[0]!.key!(reopened))
+})
+
 test("issue and PR events activate only their declared verified triggers", async () => {
   const issue = await signed("issues", {
     action: "opened",
