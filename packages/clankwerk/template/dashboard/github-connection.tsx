@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react"
 
-type GitHubStatus = { connected: boolean; login?: string; expired?: boolean; expiresAt?: number }
+type GitHubStatus = {
+  connected: boolean
+  login?: string
+  expired?: boolean
+  expiresAt?: number
+  authKind?: "app" | "user"
+  installationUrl?: string
+}
 type Repo = { fullName: string; private: boolean }
 
 /** Render only for instances that declare the GitHub connection and implement its API. */
@@ -73,8 +80,9 @@ export function GitHubConnectionSettings() {
         <span className="muted">Repositories</span>
       </div>
       <p>
-        Authorize the Clankwerk GitHub App to see selected repositories. Credentials stay in the private Worker, not the
-        agent’s code workspace.
+        {status?.authKind === "app"
+          ? "This instance uses its own GitHub App. Installation credentials stay in the private Worker, never in the agent’s workspace."
+          : "Authorize the GitHub App to see selected repositories. Credentials stay in the private Worker, not the agent’s code workspace."}
       </p>
       <p className="codex-state" role="status">
         <span
@@ -88,12 +96,17 @@ export function GitHubConnectionSettings() {
           : "Checking connection…"}
       </p>
       <div className="connector-actions">
-        {(!status?.connected || status.expired) && (
+        {status?.authKind === "app" && status.installationUrl?.startsWith("https://github.com/apps/") && (
+          <a href={status.installationUrl} target="_blank" rel="noopener noreferrer">
+            Manage App installation
+          </a>
+        )}
+        {status?.authKind !== "app" && (!status?.connected || status.expired) && (
           <button type="button" disabled={!status || busy} onClick={connect}>
             {busy ? "Opening GitHub…" : status?.expired ? "Reconnect GitHub" : "Connect GitHub"}
           </button>
         )}
-        {status?.connected && (
+        {status?.authKind !== "app" && status?.connected && (
           <button type="button" disabled={busy} onClick={disconnect}>
             Disconnect
           </button>

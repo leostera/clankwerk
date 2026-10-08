@@ -12,6 +12,7 @@ export async function fetchSelectedSnapshot(
   octokit: Octokit,
   token: string,
   request: Requester = fetch,
+  scopedRepository?: string,
 ): Promise<{ repo: string; branch: string; sha: string; archive: ArrayBuffer }> {
   if (
     !/^[a-zA-Z0-9-]{1,39}$/.test(owner) ||
@@ -22,8 +23,13 @@ export async function fetchSelectedSnapshot(
   )
     throw new Error("Expected an owner, repository name and authenticated connection")
   const fullName = `${owner}/${repo}`
-  const selected = await listInstalledRepositories(octokit)
-  if (!selected.some((entry) => entry.fullName === fullName))
+  // scopedRepository is only supplied after the App connector verifies the installation
+  // token response includes exactly this repository; user tokens still enumerate selections.
+  if (
+    scopedRepository
+      ? scopedRepository !== fullName
+      : !(await listInstalledRepositories(octokit)).some((entry) => entry.fullName === fullName)
+  )
     throw new Error("Repository is not selected in the GitHub App")
   const headers = {
     authorization: `Bearer ${token}`,

@@ -52,6 +52,14 @@ test("rejects unselected repos and redirects to untrusted hosts", async () => {
   await expect(fetchSelectedSnapshot("r4", client, "fake-token", redirect)).rejects.toThrow("Untrusted")
 })
 
+test("accepts a token verified for exactly this repository and rejects another scope", async () => {
+  const result = await fetchScoped("leostera", "r4", client, "ghs_fake", request, "leostera/r4")
+  expect(result.repo).toBe("leostera/r4")
+  await expect(fetchScoped("leostera", "r4", client, "ghs_fake", request, "leostera/other")).rejects.toThrow(
+    "not selected",
+  )
+})
+
 test("rejects an oversized archive before the Sandbox sees it", async () => {
   const oversized = async (input: string | URL | Request, init?: RequestInit) => {
     const response = await request(input, init)
