@@ -76,6 +76,27 @@ describe("Clankwerk workflow scheduler", () => {
     expect(JSON.stringify(await scheduler.status())).not.toContain("ghs_only-for-test")
   })
 
+  it("rejects a non-executable map dependency before creating a stalled durable run", async () => {
+    const mapped = trigger.map((event) => ({ ...event, head: event.head.toUpperCase() }))
+    const graph = mapped.then(
+      Task.fn({ id: Id.node("record-mapped-head"), run: (event) => Effect.succeed(event.head) }),
+    )
+    const { store } = memoryStore()
+    const scheduler = new WorkflowScheduler({
+      id: "mapped-head",
+      store,
+      workflows: { mapped: { id: "mapped", graph } },
+    })
+    await expect(
+      scheduler.start("mapped", null, {
+        id: triggerId,
+        key: "mapped-head",
+        value: { number: 1, head: "abc" },
+      }),
+    ).rejects.toThrow("non-executable dependency")
+    expect(await scheduler.status()).toBeUndefined()
+  })
+
   it("runs a triggered workflow durably using the trigger value rather than the untrusted start input", async () => {
     const task = Task.fn({
       id: Id.node("record-head"),
